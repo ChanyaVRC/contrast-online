@@ -67,20 +67,23 @@ export function Board({
     state.turn === p && controllable === p && state.winner === null;
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col gap-3">
+    <div className="w-full max-w-2xl mx-auto flex flex-col gap-3">
       <TurnBanner state={state} controllable={controllable} hint={hint} />
 
-      <div className="flex justify-start">
-        <TileTray
-          player={2}
-          inventory={state.inventories[2]}
-          active={trayActiveFor(2)}
-          selected={trayActiveFor(2) ? tile : null}
-          onSelect={trayActiveFor(2) ? setTile : noop}
-        />
-      </div>
+      <div className="flex items-stretch justify-center gap-2">
+        {/* P2 tray pinned to the top of the row — sits next to P2's pieces */}
+        <div className="self-start">
+          <TileTray
+            player={2}
+            orientation="vertical"
+            inventory={state.inventories[2]}
+            active={trayActiveFor(2)}
+            selected={trayActiveFor(2) ? tile : null}
+            onSelect={trayActiveFor(2) ? setTile : noop}
+          />
+        </div>
 
-      <div className="grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md dark:bg-slate-700">
+        <div className="aspect-square w-full max-w-md grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md dark:bg-slate-700">
         {rows.map(({ ri, cells }) =>
           cells.map((cellTile, ci) => {
             const coord: Coord = [ri, ci];
@@ -129,16 +132,19 @@ export function Board({
             );
           }),
         )}
-      </div>
+        </div>
 
-      <div className="flex justify-end">
-        <TileTray
-          player={1}
-          inventory={state.inventories[1]}
-          active={trayActiveFor(1)}
-          selected={trayActiveFor(1) ? tile : null}
-          onSelect={trayActiveFor(1) ? setTile : noop}
-        />
+        {/* P1 tray pinned to the bottom of the row — sits next to P1's pieces */}
+        <div className="self-end">
+          <TileTray
+            player={1}
+            orientation="vertical"
+            inventory={state.inventories[1]}
+            active={trayActiveFor(1)}
+            selected={trayActiveFor(1) ? tile : null}
+            onSelect={trayActiveFor(1) ? setTile : noop}
+          />
+        </div>
       </div>
 
       <ActionBar
