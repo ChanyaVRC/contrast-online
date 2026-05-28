@@ -10,8 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "cf:clean": "node scripts/clean-build.mjs",
     "cf:build:next": "next build --webpack",
-    "cf:build": "npm run cf:build:next && opennextjs-cloudflare build --skipNextBuild && node scripts/inject-do.mjs",
+    "cf:build": "npm run cf:clean && npm run cf:build:next && opennextjs-cloudflare build --skipNextBuild && node scripts/inject-do.mjs",
     "preview": "npm run cf:build && opennextjs-cloudflare preview",
     "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "cf:types": "wrangler types"
