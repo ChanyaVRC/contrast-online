@@ -204,18 +204,25 @@ function ActionBar({
   onCommit: () => void;
   onCancel: () => void;
 }) {
+  // Reserved height so phase transitions (idle / piece-selected /
+  // destination-chosen) don't push the board up or down.
+  const wrapper =
+    "min-h-[40px] flex items-center justify-between gap-2 text-xs";
+
   if (phase.kind === "idle") {
     return (
-      <p className="text-xs text-slate-500 text-center dark:text-slate-400">
-        コマをクリックして選択 →
-        移動先をクリック →
-        必要ならタイルを選んで設置マスをクリック
-      </p>
+      <div className={wrapper}>
+        <p className="text-slate-500 text-center w-full dark:text-slate-400">
+          コマをクリック →
+          移動先をクリック →
+          必要ならタイルを選んで設置マスをクリック
+        </p>
+      </div>
     );
   }
   if (phase.kind === "piece-selected") {
     return (
-      <div className="flex items-center justify-between text-xs">
+      <div className={wrapper}>
         <span className="text-slate-600 dark:text-slate-300">移動先を選んでください</span>
         <button
           onClick={onCancel}
@@ -227,7 +234,7 @@ function ActionBar({
     );
   }
   return (
-    <div className="flex items-center justify-between gap-2 text-xs">
+    <div className={wrapper}>
       <span className="text-slate-600 dark:text-slate-300">
         {tile
           ? `タイル(${tile === "black" ? "黒" : "灰"})を置くマスをクリック`

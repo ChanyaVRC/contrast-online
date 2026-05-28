@@ -64,7 +64,7 @@ export default function AiPlayPage() {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
+    <main className="flex-1 flex flex-col items-center p-4 gap-4 pt-6">
       <header className="w-full max-w-md flex items-center justify-between">
         <Link href="/" className="text-sm text-slate-600 hover:underline dark:text-slate-400 dark:hover:text-slate-100">
           ← トップ
