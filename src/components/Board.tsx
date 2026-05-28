@@ -70,17 +70,17 @@ export function Board({
     <div className="w-full max-w-md mx-auto flex flex-col gap-3">
       <TurnBanner state={state} controllable={controllable} hint={hint} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex justify-start">
         <TileTray
           player={2}
-          orientation="vertical"
           inventory={state.inventories[2]}
           active={trayActiveFor(2)}
           selected={trayActiveFor(2) ? tile : null}
           onSelect={trayActiveFor(2) ? setTile : noop}
         />
+      </div>
 
-        <div className="flex-1 grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md dark:bg-slate-700">
+      <div className="grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md dark:bg-slate-700">
         {rows.map(({ ri, cells }) =>
           cells.map((cellTile, ci) => {
             const coord: Coord = [ri, ci];
@@ -129,11 +129,11 @@ export function Board({
             );
           }),
         )}
-        </div>
+      </div>
 
+      <div className="flex justify-end">
         <TileTray
           player={1}
-          orientation="vertical"
           inventory={state.inventories[1]}
           active={trayActiveFor(1)}
           selected={trayActiveFor(1) ? tile : null}

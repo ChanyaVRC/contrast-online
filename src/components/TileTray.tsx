@@ -61,16 +61,16 @@ export function TileTray({
         selected={selected === "gray"}
         onClick={() => onSelect(selected === "gray" ? null : "gray")}
       />
-      {active && (
-        <span
-          className={[
-            "text-[10px] font-medium text-amber-700 uppercase tracking-wider dark:text-amber-300",
-            vertical ? "" : "ml-auto",
-          ].join(" ")}
-        >
-          手番
-        </span>
-      )}
+      <span
+        aria-hidden={!active}
+        className={[
+          "text-[10px] font-medium text-amber-700 uppercase tracking-wider dark:text-amber-300",
+          vertical ? "" : "ml-auto",
+          active ? "" : "invisible",
+        ].join(" ")}
+      >
+        手番
+      </span>
     </div>
   );
 }
