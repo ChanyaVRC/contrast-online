@@ -114,6 +114,7 @@ export function Board({
                         (phase.kind === "destination-chosen" && phase.pieceId === piece.id)
                       }
                       movable={controllable === piece.owner && piece.owner === state.turn}
+                      flip={piece.owner !== perspective}
                     />
                   </div>
                 )}
@@ -125,6 +126,7 @@ export function Board({
                       tile={cellTile}
                       selected
                       movable={false}
+                      flip={state.turn !== perspective}
                     />
                   </div>
                 )}

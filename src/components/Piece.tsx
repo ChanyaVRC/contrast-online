@@ -14,11 +14,16 @@ export function Piece({
   tile: _tile,
   selected,
   movable,
+  flip,
 }: {
   owner: Player;
   tile: CellTile;
   selected?: boolean;
   movable?: boolean;
+  /** If true, the piece body is rotated 180° so its arched top points
+   *  toward the opposite side of the screen (used when rendering the
+   *  opponent's pieces — their goal row is on the viewer's side). */
+  flip?: boolean;
 }) {
   const ownerStroke = owner === 1 ? "#0284c7" : "#e11d48";
   const ownerFill =
@@ -39,14 +44,18 @@ export function Piece({
       >
         {/* Arched / tombstone piece body — flat bottom, vertical sides,
             rounded peak — matching the silhouette in 029products' product
-            photo. */}
+            photo. Rotated 180° for the opponent's pieces so each piece's
+            peak points toward its own goal row. */}
+        {/* Path centered around (50, 50) so 180° rotation does not shift
+            the piece up or down. Visible bounds: y ~ 15.5–85.            */}
         <path
-          d="M 8 92 L 8 38 Q 50 0 92 38 L 92 92 Z"
+          d="M 8 85 L 8 31 Q 50 -7 92 31 L 92 85 Z"
           fill={ownerFill}
           stroke={ownerStroke}
           strokeWidth={selected ? 4 : 2.5}
           strokeOpacity={0.9}
           strokeLinejoin="round"
+          transform={flip ? "rotate(180 50 50)" : undefined}
         />
 
         {/* Black cardinal arrows — visible on white & gray backgrounds */}
