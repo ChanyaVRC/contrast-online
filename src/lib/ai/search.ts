@@ -1,4 +1,9 @@
-import { applyAction, legalDestinations, pieceAt } from "@game/rules";
+import {
+  applyActionUnchecked,
+  buildPieceGrid,
+  legalDestinations,
+  type PieceGrid,
+} from "@game/rules";
 import type { Coord, GameState, MoveAction, Player, TileColor } from "@game/types";
 import {
   BOARD_SIZE,
@@ -58,7 +63,7 @@ export function chooseMove(
       let iterationBestScore = -Infinity;
 
       for (const action of orderedRoot) {
-        const next = applyAction(root, action);
+        const next = applyActionUnchecked(root, action);
         const score = -alphaBeta(next, depth - 1, -beta, -alpha, ctx);
         if (score > iterationBestScore) {
           iterationBestScore = score;
@@ -135,7 +140,7 @@ function alphaBeta(
   let bestKey: string | undefined;
 
   for (const action of ordered) {
-    const next = applyAction(state, action);
+    const next = applyActionUnchecked(state, action);
     const score = -alphaBeta(next, depth - 1, -beta, -alpha, ctx);
     if (score > value) {
       value = score;
@@ -175,23 +180,26 @@ function generateActions(state: GameState, mover: Player): MoveAction[] {
   const myPieces = state.pieces.filter((p) => p.owner === mover);
   const inv = state.inventories[mover];
   const hasTiles = inv.black > 0 || inv.gray > 0;
-  const tileCandidates = hasTiles ? candidateTiles(state, mover, myPieces) : [];
+  const grid = buildPieceGrid(state);
+  const tileCandidates = hasTiles
+    ? candidateTiles(state, mover, myPieces, grid)
+    : [];
 
   for (const piece of myPieces) {
-    for (const dest of legalDestinations(state, piece)) {
+    const dests = legalDestinations(state, piece, grid);
+    for (let di = 0; di < dests.length; di++) {
+      const dest = dests[di];
       // Always include the bare-move option.
       out.push({ kind: "move", pieceId: piece.id, to: dest.to, tilePlace: null });
 
-      for (const cand of tileCandidates) {
-        if (coordEq(cand.at, dest.to)) continue;
-        // Reject if any OTHER piece sits on that cell.
-        if (
-          state.pieces.some(
-            (p) => p.id !== piece.id && coordEq(p.at, cand.at),
-          )
-        ) {
-          continue;
-        }
+      for (let ci = 0; ci < tileCandidates.length; ci++) {
+        const cand = tileCandidates[ci];
+        // Reject if same cell as the moving piece's destination.
+        if (cand.at[0] === dest.to[0] && cand.at[1] === dest.to[1]) continue;
+        // Reject if any OTHER piece sits on that cell. With the grid,
+        // a piece on (r, c) that isn't the moving piece blocks placement.
+        const occupant = grid[cand.at[0]][cand.at[1]];
+        if (occupant && occupant.id !== piece.id) continue;
         out.push({
           kind: "move",
           pieceId: piece.id,
@@ -208,6 +216,7 @@ function candidateTiles(
   state: GameState,
   mover: Player,
   myPieces: GameState["pieces"],
+  grid: PieceGrid,
 ): TileCandidate[] {
   const inv = state.inventories[mover];
   const goal = goalRowOf(mover);
@@ -221,7 +230,7 @@ function candidateTiles(
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
       if (state.board[r][c] !== null) continue;
-      if (pieceAt(state, r, c)) continue;
+      if (grid[r][c]) continue;
 
       const distOwn = nearestPieceDistance(myPieces, r, c);
       const distOppFront =

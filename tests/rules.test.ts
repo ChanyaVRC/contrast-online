@@ -76,6 +76,61 @@ describe("jump rule", () => {
     expect(dests).not.toContainEqual([2, 4]);
     expect(dests).not.toContainEqual([2, 3]);
   });
+  it("can chain-jump over multiple consecutive own pieces", () => {
+    // P1 moving piece at (0,0); own pieces line the row at (0,1) and (0,2).
+    // Should be able to land at (0,3).
+    const test: GameState = {
+      ...initialState(),
+      pieces: [
+        { id: 0, owner: 1, at: [0, 0] },
+        { id: 1, owner: 1, at: [0, 1] },
+        { id: 2, owner: 1, at: [0, 2] },
+        { id: 3, owner: 2, at: [4, 4] },
+      ],
+      turn: 1,
+    };
+    const p = findPiece(test, 0)!;
+    const dests = legalDestinations(test, p);
+    const landing = dests.find((d) => d.to[0] === 0 && d.to[1] === 3);
+    expect(landing).toBeDefined();
+    expect(landing!.jumpedCount).toBe(2);
+  });
+  it("multi-jump is blocked by an opponent piece in the chain", () => {
+    // Own at (0,1), opponent at (0,2). Cannot land at (0,3) since (0,2)
+    // blocks the chain.
+    const test: GameState = {
+      ...initialState(),
+      pieces: [
+        { id: 0, owner: 1, at: [0, 0] },
+        { id: 1, owner: 1, at: [0, 1] },
+        { id: 2, owner: 2, at: [0, 2] },
+        { id: 3, owner: 2, at: [4, 4] },
+      ],
+      turn: 1,
+    };
+    const p = findPiece(test, 0)!;
+    const dests = legalDestinations(test, p).map((d) => d.to);
+    expect(dests).not.toContainEqual([0, 3]);
+    expect(dests).not.toContainEqual([0, 2]);
+  });
+  it("multi-jump must land on an empty cell — board edge blocks", () => {
+    // Two own pieces stretching to the edge: nothing past the second piece.
+    const test: GameState = {
+      ...initialState(),
+      pieces: [
+        { id: 0, owner: 1, at: [0, 2] },
+        { id: 1, owner: 1, at: [0, 3] },
+        { id: 2, owner: 1, at: [0, 4] },
+        { id: 3, owner: 2, at: [4, 4] },
+      ],
+      turn: 1,
+    };
+    const p = findPiece(test, 0)!;
+    const dests = legalDestinations(test, p).map((d) => d.to);
+    // Can't land at (0,5) — out of bounds — and (0,3)/(0,4) are occupied
+    // by own pieces, so no rightward destination at all.
+    expect(dests.filter((d) => d[0] === 0 && d[1] > 2)).toHaveLength(0);
+  });
 });
 
 describe("tile movement directions", () => {

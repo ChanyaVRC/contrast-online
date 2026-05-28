@@ -1,7 +1,6 @@
 import {
   BOARD_SIZE,
   GameState,
-  Piece,
   Player,
   goalRowOf,
   opponentOf,
@@ -39,34 +38,45 @@ export function evaluate(state: GameState, me: Player): number {
       : -WIN_SCORE + state.ply;
   }
   const opp = opponentOf(me);
-  return scoreFor(state, me) - scoreFor(state, opp);
+
+  // Single pass over pieces: accumulate progress + frontmost advance for
+  // each side simultaneously. Cheaper than two filtered passes.
+  const meGoal = goalRowOf(me);
+  const oppGoal = goalRowOf(opp);
+  let meProgress = 0;
+  let oppProgress = 0;
+  let meFront = 0;
+  let oppFront = 0;
+  const pieces = state.pieces;
+  for (let i = 0; i < pieces.length; i++) {
+    const piece = pieces[i];
+    const r = piece.at[0];
+    if (piece.owner === me) {
+      const advance = BOARD_SIZE - 1 - Math.abs(meGoal - r);
+      meProgress += PROGRESS_TABLE[advance];
+      if (advance > meFront) meFront = advance;
+    } else {
+      const advance = BOARD_SIZE - 1 - Math.abs(oppGoal - r);
+      oppProgress += PROGRESS_TABLE[advance];
+      if (advance > oppFront) oppFront = advance;
+    }
+  }
+  meProgress += Math.round(PROGRESS_TABLE[meFront] * (FRONT_PIECE_WEIGHT - 1));
+  oppProgress += Math.round(PROGRESS_TABLE[oppFront] * (FRONT_PIECE_WEIGHT - 1));
+
+  if (meFront === BOARD_SIZE - 2 && state.turn === me) {
+    meProgress += NEAR_GOAL_PANIC;
+  }
+  if (oppFront === BOARD_SIZE - 2 && state.turn === opp) {
+    oppProgress += NEAR_GOAL_PANIC;
+  }
+
+  const meInv = state.inventories[me];
+  const oppInv = state.inventories[opp];
+  meProgress += meInv.black * TILE_VALUE_BLACK + meInv.gray * TILE_VALUE_GRAY;
+  oppProgress += oppInv.black * TILE_VALUE_BLACK + oppInv.gray * TILE_VALUE_GRAY;
+
+  return meProgress - oppProgress;
 }
 
-function scoreFor(state: GameState, p: Player): number {
-  const goal = goalRowOf(p);
-  let total = 0;
-  let frontAdvance = 0;
-  for (const piece of state.pieces) {
-    if (piece.owner !== p) continue;
-    const advance = BOARD_SIZE - 1 - Math.abs(goal - piece.at[0]);
-    total += PROGRESS_TABLE[advance] ?? 0;
-    if (advance > frontAdvance) frontAdvance = advance;
-  }
-  // Front piece counts extra — only one piece needs to score.
-  total += Math.round(PROGRESS_TABLE[frontAdvance] * (FRONT_PIECE_WEIGHT - 1));
-  // Imminent-win bonus: if any of p's pieces is one step from the goal row
-  // (= advance BOARD_SIZE - 2) AND it's p's turn to move, weight it heavily.
-  if (frontAdvance === BOARD_SIZE - 2 && state.turn === p) {
-    total += NEAR_GOAL_PANIC;
-  }
-  const inv = state.inventories[p];
-  total += inv.black * TILE_VALUE_BLACK + inv.gray * TILE_VALUE_GRAY;
-  return total;
-}
-
-export const _internals = {
-  PROGRESS_TABLE,
-  scoreFor,
-  WIN_SCORE,
-  Piece: null as unknown as Piece,
-};
+export const _internals = { PROGRESS_TABLE, WIN_SCORE };

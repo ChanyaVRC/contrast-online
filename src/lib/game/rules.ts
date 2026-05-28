@@ -1,5 +1,6 @@
 import {
   ALL_DIRECTIONS,
+  BOARD_SIZE,
   CARDINAL,
   Coord,
   DIAGONAL,
@@ -16,45 +17,83 @@ import {
   opponentOf,
 } from "./types";
 
+/** A precomputed 5×5 lookup of `(r, c) → piece | undefined`. */
+export type PieceGrid = (Piece | undefined)[][];
+
+/** Build a grid for O(1) `pieceAt`-style lookups. Linear in piece count. */
+export function buildPieceGrid(state: GameState): PieceGrid {
+  const grid: PieceGrid = new Array(BOARD_SIZE);
+  for (let r = 0; r < BOARD_SIZE; r++) grid[r] = new Array(BOARD_SIZE);
+  for (const p of state.pieces) grid[p.at[0]][p.at[1]] = p;
+  return grid;
+}
+
 export function pieceAt(state: GameState, r: number, c: number): Piece | undefined {
   return state.pieces.find((p) => p.at[0] === r && p.at[1] === c);
 }
 
+/** Pieces are stored in id order (initialPieces emits 0..9 in order and
+ *  every applyAction preserves the array order), so this is O(1). */
 export function findPiece(state: GameState, id: number): Piece | undefined {
-  return state.pieces.find((p) => p.id === id);
+  return state.pieces[id];
 }
 
 export interface DestOption {
   to: Coord;
-  jumpedPieceId?: number;
+  /** Number of own pieces leaped over to reach `to` (0 = ordinary step). */
+  jumpedCount?: number;
 }
 
-/** Compute legal destination cells (and optional jump) for a single piece. */
-export function legalDestinations(state: GameState, piece: Piece): DestOption[] {
+/** Compute legal destination cells for a single piece, including chained
+ *  jumps over consecutive own pieces. Opponent pieces always block.
+ *  Pass a prebuilt `grid` when calling repeatedly for the same state to
+ *  amortise the piece-position lookup.
+ */
+export function legalDestinations(
+  state: GameState,
+  piece: Piece,
+  grid?: PieceGrid,
+): DestOption[] {
   if (state.winner !== null) return [];
   if (piece.owner !== state.turn) return [];
 
+  const g = grid ?? buildPieceGrid(state);
   const [r, c] = piece.at;
   const tile = state.board[r][c];
   const dirs = directionsForTile(tile);
   const out: DestOption[] = [];
 
-  for (const [dr, dc] of dirs) {
+  for (let i = 0; i < dirs.length; i++) {
+    const dr = dirs[i][0];
+    const dc = dirs[i][1];
+    // Adjacent step: empty cell = normal move; opponent blocks; own piece
+    // starts a (possibly multi-step) jump.
     const nr = r + dr;
     const nc = c + dc;
-    if (!inBounds(nr, nc)) continue;
-    const occupant = pieceAt(state, nr, nc);
-    if (!occupant) {
+    if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+    const adjacent = g[nr][nc];
+    if (!adjacent) {
       out.push({ to: [nr, nc] });
       continue;
     }
-    // Jump only over own piece, land 2 squares further (no chain).
-    if (occupant.owner !== piece.owner) continue;
-    const lr = r + dr * 2;
-    const lc = c + dc * 2;
-    if (!inBounds(lr, lc)) continue;
-    if (pieceAt(state, lr, lc)) continue;
-    out.push({ to: [lr, lc], jumpedPieceId: occupant.id });
+    if (adjacent.owner !== piece.owner) continue;
+
+    // Walk past consecutive own pieces in the same direction; the first
+    // empty cell beyond them is the landing spot. An opponent piece or
+    // the board edge blocks the jump.
+    let jumped = 1;
+    for (let step = 2; ; step++) {
+      const cr = r + dr * step;
+      const cc = c + dc * step;
+      if (cr < 0 || cr >= BOARD_SIZE || cc < 0 || cc >= BOARD_SIZE) break;
+      const cell = g[cr][cc];
+      if (!cell) {
+        out.push({ to: [cr, cc], jumpedCount: jumped });
+        break;
+      }
+      if (cell.owner !== piece.owner) break;
+      jumped++;
+    }
   }
   return out;
 }
@@ -107,27 +146,40 @@ export function validateAction(state: GameState, action: MoveAction): Validation
 export function applyAction(state: GameState, action: MoveAction): GameState {
   const v = validateAction(state, action);
   if (!v.ok) throw new Error(`invalid move: ${v.reason}`);
+  return applyActionUnchecked(state, action);
+}
 
-  const piece = findPiece(state, action.pieceId)!;
-  const newPieces = state.pieces.map((p) =>
-    p.id === piece.id ? { ...p, at: action.to } : p,
-  );
+/** Trusted-caller variant: skip `validateAction`. Use only when the
+ *  action is known legal (e.g. produced by `generateActions` in the AI). */
+export function applyActionUnchecked(
+  state: GameState,
+  action: MoveAction,
+): GameState {
+  const piece = state.pieces[action.pieceId];
+  const newPieces = state.pieces.slice();
+  newPieces[action.pieceId] = { ...piece, at: action.to };
 
   let newBoard = state.board;
   let newInventories = state.inventories;
 
-  if (action.tilePlace) {
-    newBoard = state.board.map((row) => row.slice());
-    newBoard[action.tilePlace.at[0]][action.tilePlace.at[1]] = action.tilePlace.color;
+  const tilePlace = action.tilePlace;
+  if (tilePlace) {
+    newBoard = state.board.slice();
+    const tr = tilePlace.at[0];
+    newBoard[tr] = newBoard[tr].slice();
+    newBoard[tr][tilePlace.at[1]] = tilePlace.color;
     const cur = state.inventories[state.turn];
-    const next: typeof cur = { ...cur };
-    if (action.tilePlace.color === "black") next.black -= 1;
+    const next: typeof cur = { black: cur.black, gray: cur.gray };
+    if (tilePlace.color === "black") next.black -= 1;
     else next.gray -= 1;
-    newInventories = { ...state.inventories, [state.turn]: next };
+    newInventories =
+      state.turn === 1
+        ? { 1: next, 2: state.inventories[2] }
+        : { 1: state.inventories[1], 2: next };
   }
 
-  const winner =
-    action.to[0] === goalRowOf(state.turn) ? state.turn : state.winner;
+  const goal = goalRowOf(state.turn);
+  const winner = action.to[0] === goal ? state.turn : state.winner;
 
   return {
     ...state,
