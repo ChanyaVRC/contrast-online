@@ -18,6 +18,10 @@ export const metadata: Metadata = {
     "029products のボードゲーム『コントラスト』をブラウザで遊べる非公式版（ローカル / AI / オンライン対戦）",
 };
 
+export const viewport = {
+  colorScheme: "light",
+} as const;
+
 export default function RootLayout({
   children,
 }: Readonly<{
