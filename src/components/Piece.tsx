@@ -37,17 +37,15 @@ export function Piece({
         className="absolute inset-0 h-full w-full pointer-events-none"
         aria-hidden
       >
-        {/* Rounded-square piece body, semi-transparent */}
-        <rect
-          x="6"
-          y="6"
-          width="88"
-          height="88"
-          rx="14"
+        {/* Pentagonal "home-plate" piece body, modeled on the physical
+            transparent piece in the official product photo. */}
+        <polygon
+          points="50,8 92,38 92,92 8,92 8,38"
           fill={ownerFill}
           stroke={ownerStroke}
           strokeWidth={selected ? 4 : 2.5}
           strokeOpacity={0.9}
+          strokeLinejoin="round"
         />
 
         {/* Black cardinal arrows — visible on white & gray backgrounds */}
