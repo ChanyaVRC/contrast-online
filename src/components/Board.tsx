@@ -70,7 +70,7 @@ export function Board({
     <div className="w-full max-w-md mx-auto flex flex-col gap-3">
       <TurnBanner state={state} controllable={controllable} hint={hint} />
 
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <TileTray
           player={2}
           inventory={state.inventories[2]}
