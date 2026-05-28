@@ -60,8 +60,9 @@ export function Board({
   const destinations: Coord[] =
     phase.kind === "piece-selected" ? phase.destinations : [];
 
-  const topPlayer: Player = perspective === 1 ? 2 : 1;
-  const bottomPlayer: Player = perspective;
+  // Fixed layout: P2 tray top-right, P1 tray bottom-right, regardless of
+  // which player the viewer controls. (Perspective only flips the board
+  // row order.)
   const trayActiveFor = (p: Player) =>
     state.turn === p && controllable === p && state.winner === null;
 
@@ -69,13 +70,15 @@ export function Board({
     <div className="w-full max-w-md mx-auto flex flex-col gap-3">
       <TurnBanner state={state} controllable={controllable} hint={hint} />
 
-      <TileTray
-        player={topPlayer}
-        inventory={state.inventories[topPlayer]}
-        active={trayActiveFor(topPlayer)}
-        selected={trayActiveFor(topPlayer) ? tile : null}
-        onSelect={trayActiveFor(topPlayer) ? setTile : noop}
-      />
+      <div className="flex justify-end">
+        <TileTray
+          player={2}
+          inventory={state.inventories[2]}
+          active={trayActiveFor(2)}
+          selected={trayActiveFor(2) ? tile : null}
+          onSelect={trayActiveFor(2) ? setTile : noop}
+        />
+      </div>
 
       <div className="grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md dark:bg-slate-700">
         {rows.map(({ ri, cells }) =>
@@ -128,13 +131,15 @@ export function Board({
         )}
       </div>
 
-      <TileTray
-        player={bottomPlayer}
-        inventory={state.inventories[bottomPlayer]}
-        active={trayActiveFor(bottomPlayer)}
-        selected={trayActiveFor(bottomPlayer) ? tile : null}
-        onSelect={trayActiveFor(bottomPlayer) ? setTile : noop}
-      />
+      <div className="flex justify-end">
+        <TileTray
+          player={1}
+          inventory={state.inventories[1]}
+          active={trayActiveFor(1)}
+          selected={trayActiveFor(1) ? tile : null}
+          onSelect={trayActiveFor(1) ? setTile : noop}
+        />
+      </div>
 
       <ActionBar
         phase={phase}
