@@ -46,8 +46,8 @@ export default function AiPlayPage() {
       type: "search",
       state,
       me: state.turn,
-      timeBudgetMs: 600,
-      maxDepth: 5,
+      timeBudgetMs: 1500,
+      maxDepth: 10,
       reqId,
     };
     workerRef.current.postMessage(req);
