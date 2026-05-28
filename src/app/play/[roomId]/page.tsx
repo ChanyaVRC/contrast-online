@@ -103,7 +103,7 @@ export default function RoomPage({
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center p-4 gap-4 w-full max-w-md mx-auto">
+    <main className="flex-1 flex flex-col items-center p-4 gap-4 w-full max-w-xl mx-auto pt-6">
       <header className="w-full flex items-center justify-between gap-2">
         <Link
           href="/play/online"
