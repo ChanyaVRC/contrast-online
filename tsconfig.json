@@ -19,8 +19,10 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["./src/*"],
+      "@game/*": ["./src/lib/game/*"]
+    },
+    "types": ["@cloudflare/workers-types"]
   },
   "include": [
     "next-env.d.ts",
