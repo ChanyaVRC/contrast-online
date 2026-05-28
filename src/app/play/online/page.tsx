@@ -19,66 +19,111 @@ export default function OnlineLobbyPage() {
       const json = (await res.json()) as { code: string; path: string };
       router.push(json.path as never);
     } catch {
-      setError("ルーム作成に失敗しました");
+      setError("ルーム作成に失敗しました。時間をおいて再度お試しください。");
       setBusy(false);
     }
   }
 
   function joinRoom(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     const code = joinCode.trim().toUpperCase();
     if (!/^[A-Z0-9]{4,12}$/.test(code)) {
-      setError("コードは英数字 4〜12 文字");
+      setError("コードは英数字 4〜12 文字で入力してください");
       return;
     }
     router.push(`/play/${code}` as never);
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center p-6">
+    <main className="flex-1 flex flex-col items-center p-6">
       <div className="max-w-md w-full space-y-6">
-        <header className="flex items-center justify-between">
-          <Link href="/" className="text-sm text-slate-600 hover:underline">
+        <header className="flex items-center pt-2">
+          <Link
+            href="/"
+            className="text-sm text-slate-600 hover:underline hover:text-slate-900"
+          >
             ← トップ
           </Link>
-          <h1 className="font-semibold">オンライン対戦</h1>
-          <span />
+          <h1 className="flex-1 text-center text-lg font-bold tracking-tight">
+            オンライン対戦
+          </h1>
+          <span className="w-12" />
         </header>
 
-        <section className="space-y-3 rounded-xl bg-white shadow p-5">
-          <h2 className="font-semibold">ルームを作成</h2>
-          <p className="text-sm text-slate-600">
-            6 文字のコードと URL が発行されます。相手にシェアしてください。
-          </p>
+        <p className="text-center text-sm text-slate-600">
+          ルームを作って URL を送れば、相手と 1 対 1 で対戦できます
+        </p>
+
+        {/* Primary action — create room */}
+        <section className="rounded-2xl bg-white shadow-md p-6 space-y-4 border border-slate-200">
+          <div>
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700 text-sm font-bold">
+                1
+              </span>
+              新しいルームを作る
+            </h2>
+            <p className="mt-1.5 text-xs text-slate-500 pl-9">
+              発行された URL を相手にシェア。先に入った人が P1 になります。
+            </p>
+          </div>
           <button
             disabled={busy}
             onClick={createRoom}
-            className="w-full rounded bg-sky-600 text-white py-2 font-medium hover:bg-sky-700 disabled:opacity-50"
+            className="w-full rounded-xl bg-sky-600 text-white py-3.5 text-base font-semibold hover:bg-sky-700 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition"
           >
-            {busy ? "作成中…" : "新しいルームを作る"}
+            {busy ? "作成中…" : "ルームを作って待機"}
           </button>
         </section>
 
-        <section className="space-y-3 rounded-xl bg-white shadow p-5">
-          <h2 className="font-semibold">既存ルームに参加</h2>
-          <form onSubmit={joinRoom} className="flex gap-2">
+        <div className="flex items-center gap-3 text-xs text-slate-400 uppercase tracking-wider">
+          <span className="flex-1 h-px bg-slate-300" />
+          または
+          <span className="flex-1 h-px bg-slate-300" />
+        </div>
+
+        {/* Secondary action — join existing room */}
+        <section className="rounded-2xl bg-white shadow-sm p-6 space-y-4 border border-slate-200">
+          <div>
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-sm font-bold">
+                2
+              </span>
+              既存ルームに参加
+            </h2>
+            <p className="mt-1.5 text-xs text-slate-500 pl-9">
+              相手から受け取った 6 文字のコードを入力
+            </p>
+          </div>
+          <form onSubmit={joinRoom} className="space-y-3">
             <input
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
+              onChange={(e) =>
+                setJoinCode(e.target.value.replace(/[^A-Za-z0-9]/g, ""))
+              }
               placeholder="ABC123"
-              className="flex-1 rounded border border-slate-300 px-3 py-2 font-mono uppercase"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              className="w-full rounded-xl border-2 border-slate-300 px-4 py-3.5 text-center text-2xl font-mono font-semibold uppercase tracking-[0.4em] focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 placeholder:text-slate-300 placeholder:font-normal placeholder:tracking-normal placeholder:text-base"
               maxLength={12}
             />
             <button
               type="submit"
-              className="rounded bg-slate-800 text-white px-4 py-2 hover:bg-slate-900"
+              disabled={joinCode.trim().length < 4}
+              className="w-full rounded-xl bg-slate-800 text-white py-3.5 text-base font-semibold hover:bg-slate-900 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition"
             >
-              参加
+              ルームに参加
             </button>
           </form>
         </section>
 
-        {error && <p className="text-sm text-rose-600 text-center">{error}</p>}
+        {error && (
+          <div className="rounded-xl bg-rose-50 border border-rose-300 px-4 py-3 text-sm text-rose-800 text-center">
+            {error}
+          </div>
+        )}
       </div>
     </main>
   );
