@@ -46,10 +46,12 @@ export function Piece({
             rounded peak — matching the silhouette in 029products' product
             photo. Rotated 180° for the opponent's pieces so each piece's
             peak points toward its own goal row. */}
-        {/* Path centered around (50, 50) so 180° rotation does not shift
-            the piece up or down. Visible bounds: y ~ 15.5–85.            */}
+        {/* Square footprint centered around (50, 50): bounds x 8–92,
+            y 8–92 (84×84). Bottom 3/4 of the height is the straight
+            sides, top 1/4 is the arch. Vertical center at y=50 means
+            180° rotation keeps the piece in the same vertical position. */}
         <path
-          d="M 8 85 L 8 31 Q 50 -7 92 31 L 92 85 Z"
+          d="M 8 92 L 8 29 Q 50 -13 92 29 L 92 92 Z"
           fill={ownerFill}
           stroke={ownerStroke}
           strokeWidth={selected ? 4 : 2.5}
