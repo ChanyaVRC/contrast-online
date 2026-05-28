@@ -1,5 +1,3 @@
-export const runtime = "edge";
-
 function makeCode(): string {
   // 6-char human-friendly room code: no 0/O/1/I confusion.
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

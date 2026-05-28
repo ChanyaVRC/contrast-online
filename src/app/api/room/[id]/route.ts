@@ -1,7 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-export const runtime = "edge";
-
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, ctx: Params): Promise<Response> {
