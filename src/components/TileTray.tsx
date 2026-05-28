@@ -1,17 +1,21 @@
 import type { Player, TileColor, TileInventory } from "@game/types";
 
+type Orientation = "horizontal" | "vertical";
+
 export function TileTray({
   player,
   inventory,
   active,
   selected,
   onSelect,
+  orientation = "horizontal",
 }: {
   player: Player;
   inventory: TileInventory;
   active: boolean;
   selected: TileColor | null;
   onSelect: (color: TileColor | null) => void;
+  orientation?: Orientation;
 }) {
   const tone =
     player === 1
@@ -26,10 +30,15 @@ export function TileTray({
           bg: "bg-rose-50 dark:bg-rose-950/40",
         };
 
+  const vertical = orientation === "vertical";
+
   return (
     <div
       className={[
-        "flex items-center gap-3 px-3 py-2 rounded-lg border",
+        "rounded-lg border",
+        vertical
+          ? "flex flex-col items-center gap-2 px-2 py-3"
+          : "flex items-center gap-3 px-3 py-2",
         tone.border,
         tone.bg,
         active ? "ring-2 ring-amber-400 shadow-sm" : "",
@@ -53,7 +62,12 @@ export function TileTray({
         onClick={() => onSelect(selected === "gray" ? null : "gray")}
       />
       {active && (
-        <span className="ml-auto text-[10px] font-medium text-amber-700 uppercase tracking-wider dark:text-amber-300">
+        <span
+          className={[
+            "text-[10px] font-medium text-amber-700 uppercase tracking-wider dark:text-amber-300",
+            vertical ? "" : "ml-auto",
+          ].join(" ")}
+        >
           手番
         </span>
       )}
@@ -85,7 +99,11 @@ function TileButton({
         color === "black"
           ? "bg-slate-900 border-slate-700"
           : "bg-slate-400 border-slate-500",
-        empty ? "opacity-25" : disabled ? "opacity-70 cursor-not-allowed" : "cursor-pointer hover:scale-105",
+        empty
+          ? "opacity-25"
+          : disabled
+            ? "opacity-70 cursor-not-allowed"
+            : "cursor-pointer hover:scale-105",
         selected ? "ring-4 ring-amber-400" : "",
       ].join(" ")}
       aria-label={`${color === "black" ? "黒" : "灰"}タイル 残り${count}`}
