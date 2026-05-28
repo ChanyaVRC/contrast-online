@@ -36,7 +36,7 @@ export default function OnlineLobbyPage() {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center p-6">
+    <main className="flex-1 flex flex-col items-center justify-center p-6">
       <div className="max-w-md w-full space-y-6">
         <header className="flex items-center pt-2">
           <Link
