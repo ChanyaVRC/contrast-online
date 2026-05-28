@@ -27,9 +27,12 @@ export function Board({
   const [phase, setPhase] = useState<Phase>(startSelection);
   const [tile, setTile] = useState<TileColor | null>(null);
 
+  // P1's home row is engine row 0; we want each player's own home row at
+  // the bottom of their screen. Reverse rows for P1 (so row 4 is on top),
+  // keep natural order for P2 (whose home is already row 4 = bottom).
   const rows = useMemo(() => {
     const r = state.board.map((row, ri) => ({ ri, cells: row }));
-    return perspective === 2 ? [...r].reverse() : r;
+    return perspective === 1 ? [...r].reverse() : r;
   }, [state.board, perspective]);
 
   function handleCellClick(coord: Coord) {
