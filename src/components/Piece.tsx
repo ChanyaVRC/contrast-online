@@ -37,10 +37,11 @@ export function Piece({
         className="absolute inset-0 h-full w-full pointer-events-none"
         aria-hidden
       >
-        {/* Pentagonal "home-plate" piece body, modeled on the physical
-            transparent piece in the official product photo. */}
-        <polygon
-          points="50,8 92,38 92,92 8,92 8,38"
+        {/* Arched / tombstone piece body — flat bottom, vertical sides,
+            rounded peak — matching the silhouette in 029products' product
+            photo. */}
+        <path
+          d="M 8 92 L 8 38 Q 50 0 92 38 L 92 92 Z"
           fill={ownerFill}
           stroke={ownerStroke}
           strokeWidth={selected ? 4 : 2.5}
