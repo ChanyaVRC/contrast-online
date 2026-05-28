@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Class-based dark mode. Activated by `<html class="dark">` (set by the
+   ThemeToggle / pre-hydration script). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
