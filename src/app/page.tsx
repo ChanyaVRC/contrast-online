@@ -6,7 +6,7 @@ export default function Home() {
       <div className="max-w-lg w-full space-y-8 text-center">
         <header>
           <h1 className="text-4xl font-bold tracking-tight">コントラスト</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             背景色でコマの可動方向が変わる、5×5 の 2 人対戦アブストラクト
           </p>
         </header>
@@ -32,7 +32,7 @@ export default function Home() {
           />
         </div>
 
-        <footer className="text-xs text-slate-500">
+        <footer className="text-xs text-slate-500 dark:text-slate-500">
           原作: 029products「コントラスト」 ·
           このサイトは非公式のファンメイド web 実装です
         </footer>

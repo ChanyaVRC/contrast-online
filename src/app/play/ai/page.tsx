@@ -66,13 +66,13 @@ export default function AiPlayPage() {
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
       <header className="w-full max-w-md flex items-center justify-between">
-        <Link href="/" className="text-sm text-slate-600 hover:underline">
+        <Link href="/" className="text-sm text-slate-600 hover:underline dark:text-slate-400 dark:hover:text-slate-100">
           ← トップ
         </Link>
         <h1 className="font-semibold">AI 対戦</h1>
         <button
           onClick={reset}
-          className="text-sm rounded border border-slate-300 px-2 py-1 hover:bg-slate-100"
+          className="text-sm rounded border border-slate-300 px-2 py-1 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
         >
           リセット
         </button>
@@ -93,7 +93,7 @@ export default function AiPlayPage() {
         }
       />
       {stats && (
-        <p className="text-[10px] text-slate-500">
+        <p className="text-[10px] text-slate-500 dark:text-slate-500">
           CPU 最終手: depth={stats.depth} nodes={stats.nodes.toLocaleString()}
         </p>
       )}

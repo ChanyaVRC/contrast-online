@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  colorScheme: "light",
+  colorScheme: "light dark",
 } as const;
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gradient-to-b from-slate-100 to-slate-200 text-slate-900">
+      <body className="min-h-full flex flex-col bg-gradient-to-b from-slate-100 to-slate-200 text-slate-900 dark:from-slate-900 dark:to-slate-950 dark:text-slate-100">
         {children}
       </body>
     </html>

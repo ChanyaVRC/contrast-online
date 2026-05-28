@@ -77,7 +77,7 @@ export function Board({
         onSelect={trayActiveFor(topPlayer) ? setTile : noop}
       />
 
-      <div className="grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md">
+      <div className="grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md dark:bg-slate-700">
         {rows.map(({ ri, cells }) =>
           cells.map((cellTile, ci) => {
             const coord: Coord = [ri, ci];
@@ -159,7 +159,7 @@ function TurnBanner({
 }) {
   if (state.winner) {
     return (
-      <div className="rounded bg-emerald-100 px-3 py-2 text-sm text-emerald-900 text-center font-medium">
+      <div className="rounded bg-emerald-100 px-3 py-2 text-sm text-emerald-900 text-center font-medium dark:bg-emerald-950/60 dark:text-emerald-200">
         🏆 P{state.winner} の勝利！
       </div>
     );
@@ -170,7 +170,9 @@ function TurnBanner({
     <div
       className={[
         "rounded px-3 py-2 text-sm text-center font-medium",
-        isMe ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-700",
+        isMe
+          ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
+          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
       ].join(" ")}
     >
       {hint ?? (isMe ? `あなた（P${me}）の番です` : `P${state.turn} の番`)}
@@ -191,7 +193,7 @@ function ActionBar({
 }) {
   if (phase.kind === "idle") {
     return (
-      <p className="text-xs text-slate-500 text-center">
+      <p className="text-xs text-slate-500 text-center dark:text-slate-400">
         コマをクリックして選択 →
         移動先をクリック →
         必要ならタイルを選んで設置マスをクリック
@@ -201,10 +203,10 @@ function ActionBar({
   if (phase.kind === "piece-selected") {
     return (
       <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-600">移動先を選んでください</span>
+        <span className="text-slate-600 dark:text-slate-300">移動先を選んでください</span>
         <button
           onClick={onCancel}
-          className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100"
+          className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           キャンセル
         </button>
@@ -213,7 +215,7 @@ function ActionBar({
   }
   return (
     <div className="flex items-center justify-between gap-2 text-xs">
-      <span className="text-slate-600">
+      <span className="text-slate-600 dark:text-slate-300">
         {tile
           ? `タイル(${tile === "black" ? "黒" : "灰"})を置くマスをクリック`
           : "確定: タイルを置かず次のプレイヤーへ"}
@@ -221,7 +223,7 @@ function ActionBar({
       <div className="flex gap-2">
         <button
           onClick={onCancel}
-          className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100"
+          className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           キャンセル
         </button>

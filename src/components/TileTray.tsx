@@ -15,8 +15,16 @@ export function TileTray({
 }) {
   const tone =
     player === 1
-      ? { border: "border-sky-300", label: "text-sky-800", bg: "bg-sky-50" }
-      : { border: "border-rose-300", label: "text-rose-800", bg: "bg-rose-50" };
+      ? {
+          border: "border-sky-300 dark:border-sky-800",
+          label: "text-sky-800 dark:text-sky-200",
+          bg: "bg-sky-50 dark:bg-sky-950/40",
+        }
+      : {
+          border: "border-rose-300 dark:border-rose-800",
+          label: "text-rose-800 dark:text-rose-200",
+          bg: "bg-rose-50 dark:bg-rose-950/40",
+        };
 
   return (
     <div
@@ -45,7 +53,7 @@ export function TileTray({
         onClick={() => onSelect(selected === "gray" ? null : "gray")}
       />
       {active && (
-        <span className="ml-auto text-[10px] font-medium text-amber-700 uppercase tracking-wider">
+        <span className="ml-auto text-[10px] font-medium text-amber-700 uppercase tracking-wider dark:text-amber-300">
           手番
         </span>
       )}
@@ -86,8 +94,8 @@ function TileButton({
         className={[
           "absolute -top-1.5 -right-1.5 h-5 min-w-[1.25rem] px-1 rounded-full text-[11px] font-bold flex items-center justify-center",
           count > 0
-            ? "bg-white text-slate-900 border border-slate-400 shadow-sm"
-            : "bg-slate-200 text-slate-500 border border-slate-300",
+            ? "bg-white text-slate-900 border border-slate-400 shadow-sm dark:bg-slate-100 dark:text-slate-900 dark:border-slate-500"
+            : "bg-slate-200 text-slate-500 border border-slate-300 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600",
         ].join(" ")}
       >
         {count}

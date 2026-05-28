@@ -107,12 +107,12 @@ export default function RoomPage({
       <header className="w-full flex items-center justify-between gap-2">
         <Link
           href="/play/online"
-          className="text-sm text-slate-600 hover:underline"
+          className="text-sm text-slate-600 hover:underline dark:text-slate-400 dark:hover:text-slate-100"
         >
           ← ロビー
         </Link>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-base font-semibold tracking-wider bg-white px-3 py-1 rounded-md border border-slate-300 shadow-sm">
+          <span className="font-mono text-base font-semibold tracking-wider bg-white px-3 py-1 rounded-md border border-slate-300 shadow-sm dark:bg-slate-800 dark:border-slate-700">
             {roomId}
           </span>
           <ConnectionDot status={status} />
@@ -157,7 +157,7 @@ export default function RoomPage({
       </div>
 
       {notice && (
-        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1">
+        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1 dark:bg-amber-950/50 dark:border-amber-800 dark:text-amber-200">
           {notice}
         </div>
       )}
@@ -192,7 +192,7 @@ function ConnectionDot({
         ? "接続試行中"
         : "切断";
   return (
-    <span className="flex items-center gap-1.5 text-xs text-slate-600">
+    <span className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
       <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
       {label}
     </span>
@@ -244,11 +244,11 @@ function SlotChip({
   const tone =
     color === "sky"
       ? present
-        ? "bg-sky-100 border-sky-400 text-sky-900"
-        : "bg-slate-100 border-slate-300 text-slate-500"
+        ? "bg-sky-100 border-sky-400 text-sky-900 dark:bg-sky-950/60 dark:border-sky-700 dark:text-sky-200"
+        : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
       : present
-        ? "bg-rose-100 border-rose-400 text-rose-900"
-        : "bg-slate-100 border-slate-300 text-slate-500";
+        ? "bg-rose-100 border-rose-400 text-rose-900 dark:bg-rose-950/60 dark:border-rose-700 dark:text-rose-200"
+        : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500";
   const ring = active ? "ring-2 ring-amber-400" : "";
   return (
     <div
@@ -297,19 +297,19 @@ function WaitingCard({
       ? "P2"
       : null;
   return (
-    <section className="w-full rounded-xl bg-amber-50 border-2 border-amber-300 p-4 shadow-sm">
+    <section className="w-full rounded-xl bg-amber-50 border-2 border-amber-300 p-4 shadow-sm dark:bg-amber-950/30 dark:border-amber-800">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg animate-pulse">⏳</span>
-        <h2 className="text-base font-semibold text-amber-900">
+        <h2 className="text-base font-semibold text-amber-900 dark:text-amber-200">
           対戦相手を待っています
         </h2>
       </div>
-      <p className="text-xs text-amber-800 mb-3">
+      <p className="text-xs text-amber-800 mb-3 dark:text-amber-300/90">
         {mySlot === "spectator"
           ? "ルームは満員ですが、観戦としては入室できます"
           : `あなたは ${mySlot} です。${waitingFor ?? ""} の参加までお待ちください。下の URL を相手にシェアしてください。`}
       </p>
-      <div className="font-mono text-[11px] bg-white rounded px-2 py-2 break-all border border-slate-300 mb-2 select-all">
+      <div className="font-mono text-[11px] bg-white rounded px-2 py-2 break-all border border-slate-300 mb-2 select-all dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
         {shareUrl || "..."}
       </div>
       <button

@@ -25,7 +25,7 @@ export function Cell({
       type="button"
       onClick={onClick}
       className={[
-        "relative aspect-square border border-slate-300 flex items-center justify-center",
+        "relative aspect-square border border-slate-300 flex items-center justify-center dark:border-slate-700",
         bg,
         isDestination ? "ring-4 ring-emerald-400/80 ring-inset" : "",
         isTileTarget ? "ring-4 ring-amber-400/80 ring-inset" : "",
