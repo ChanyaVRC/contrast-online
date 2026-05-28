@@ -32,6 +32,24 @@ export default function Home() {
           />
         </div>
 
+        <section className="space-y-2 pt-2">
+          <div className="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            原作について
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <ExternalLink
+              href="https://029products-contrast.studio.site/"
+              title="公式サイト"
+              desc="029products"
+            />
+            <ExternalLink
+              href="https://bodoge.hoobby.net/market/items/4801"
+              title="購入する"
+              desc="ボドゲーマ"
+            />
+          </div>
+        </section>
+
         <footer className="text-xs text-slate-500 dark:text-slate-500">
           原作: 029products「コントラスト」 ·
           このサイトは非公式のファンメイド web 実装です
@@ -65,5 +83,32 @@ function ModeCard({
       <div className="text-lg font-semibold">{title}</div>
       <div className="text-sm opacity-90">{desc}</div>
     </Link>
+  );
+}
+
+function ExternalLink({
+  href,
+  title,
+  desc,
+}: {
+  href: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-left text-sm hover:bg-slate-50 hover:border-slate-400 transition dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700"
+    >
+      <div className="font-semibold flex items-center gap-1">
+        {title}
+        <span aria-hidden className="text-[10px] opacity-60">↗</span>
+      </div>
+      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        {desc}
+      </div>
+    </a>
   );
 }
