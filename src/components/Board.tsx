@@ -60,16 +60,21 @@ export function Board({
   const destinations: Coord[] =
     phase.kind === "piece-selected" ? phase.destinations : [];
 
+  const topPlayer: Player = perspective === 1 ? 2 : 1;
+  const bottomPlayer: Player = perspective;
+  const trayActiveFor = (p: Player) =>
+    state.turn === p && controllable === p && state.winner === null;
+
   return (
     <div className="w-full max-w-md mx-auto flex flex-col gap-3">
       <TurnBanner state={state} controllable={controllable} hint={hint} />
 
       <TileTray
-        player={state.turn}
-        inventory={state.inventories[state.turn]}
-        active={controllable === state.turn && phase.kind !== "idle"}
-        selected={tile}
-        onSelect={setTile}
+        player={topPlayer}
+        inventory={state.inventories[topPlayer]}
+        active={trayActiveFor(topPlayer)}
+        selected={trayActiveFor(topPlayer) ? tile : null}
+        onSelect={trayActiveFor(topPlayer) ? setTile : noop}
       />
 
       <div className="grid grid-cols-5 gap-[2px] rounded bg-slate-300 p-[2px] shadow-md">
@@ -123,6 +128,14 @@ export function Board({
         )}
       </div>
 
+      <TileTray
+        player={bottomPlayer}
+        inventory={state.inventories[bottomPlayer]}
+        active={trayActiveFor(bottomPlayer)}
+        selected={trayActiveFor(bottomPlayer) ? tile : null}
+        onSelect={trayActiveFor(bottomPlayer) ? setTile : noop}
+      />
+
       <ActionBar
         phase={phase}
         tile={tile}
@@ -132,6 +145,8 @@ export function Board({
     </div>
   );
 }
+
+function noop() {}
 
 function TurnBanner({
   state,
