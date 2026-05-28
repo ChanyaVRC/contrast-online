@@ -8,9 +8,15 @@ export type ClientMsg =
   | { t: "rematch"; gameId: string }
   | { t: "ping" };
 
+export interface Presence {
+  p1: boolean;
+  p2: boolean;
+}
+
 export type ServerMsg =
-  | { t: "welcome"; you: PlayerSlot; state: GameState }
+  | { t: "welcome"; you: PlayerSlot; state: GameState; presence: Presence }
   | { t: "state"; state: GameState; lastClientSeq?: number }
+  | { t: "presence"; presence: Presence }
   | { t: "reject"; clientSeq: number; reason: string }
   | { t: "peer"; event: "joined" | "left" | "reconnected"; slot: PlayerSlot }
   | { t: "end"; winner: Player | null; reason: "win" | "resign" | "abandoned" }

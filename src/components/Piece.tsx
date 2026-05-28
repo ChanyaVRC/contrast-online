@@ -1,15 +1,17 @@
 import type { CellTile, Player } from "@game/types";
-import { directionsForTile } from "@game/types";
+import { CARDINAL, DIAGONAL } from "@game/types";
 
 /**
- * Rendered transparent piece. Arrows are visible according to the underlying cell:
- *   - White cell  → black arrows in the 4 cardinal directions
- *   - Black tile  → white arrows in the 4 diagonal directions
- *   - Gray tile   → both sets visible
+ * Transparent square piece, modeled on the physical product:
+ *   - Black cardinal arrows (visible against white & gray backgrounds)
+ *   - White diagonal arrows (visible against black & gray backgrounds)
+ * Both sets are always printed; the underlying tile color naturally
+ * hides the ones that match it, which is exactly how the rules render
+ * the legal directions to the player.
  */
 export function Piece({
   owner,
-  tile,
+  tile: _tile,
   selected,
   movable,
 }: {
@@ -18,28 +20,16 @@ export function Piece({
   selected?: boolean;
   movable?: boolean;
 }) {
-  const ring =
-    owner === 1
-      ? "ring-sky-500/80"
-      : "ring-rose-500/80";
-  const rim =
-    owner === 1
-      ? "border-sky-300/90"
-      : "border-rose-300/90";
-
-  const dirs = directionsForTile(tile);
-  // Arrow color: on black tile show white arrows; otherwise black; on gray show mixed (both sets).
-  const arrowColor = tile === "black" ? "#f3f4f6" : "#0f172a";
+  const ownerStroke = owner === 1 ? "#0284c7" : "#e11d48";
+  const ownerFill =
+    owner === 1 ? "rgba(2,132,199,0.10)" : "rgba(225,29,72,0.10)";
 
   return (
     <div
       className={[
-        "relative aspect-square w-[78%] rounded-full border-2",
-        "bg-white/30 backdrop-blur-[1px]",
-        "shadow-[0_2px_6px_rgba(0,0,0,0.15),inset_0_-2px_4px_rgba(255,255,255,0.4)]",
-        rim,
-        selected ? `ring-4 ${ring}` : "",
-        movable ? "cursor-pointer hover:scale-105 transition-transform" : "",
+        "relative aspect-square w-[86%]",
+        movable ? "cursor-pointer hover:scale-[1.04] transition-transform" : "",
+        selected ? "scale-105 drop-shadow-[0_0_6px_rgba(245,158,11,0.85)]" : "",
       ].join(" ")}
     >
       <svg
@@ -47,81 +37,68 @@ export function Piece({
         className="absolute inset-0 h-full w-full pointer-events-none"
         aria-hidden
       >
-        {dirs.map(([dr, dc], i) => (
-          <Arrow key={i} dr={dr} dc={dc} color={arrowColor} />
-        ))}
-        {tile === "gray" && (
-          // On gray, also overlay the white-arrow set so the user can see both visible sets at once.
-          <>
-            {dirs.map(([dr, dc], i) => (
-              <Arrow key={`w-${i}`} dr={dr} dc={dc} color="#f8fafc" subtle />
-            ))}
-          </>
-        )}
-      </svg>
-      {/* Owner dot in the middle so even a glance reveals ownership */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div
-          className={[
-            "h-3 w-3 rounded-full",
-            owner === 1 ? "bg-sky-600" : "bg-rose-600",
-          ].join(" ")}
+        {/* Rounded-square piece body, semi-transparent */}
+        <rect
+          x="6"
+          y="6"
+          width="88"
+          height="88"
+          rx="14"
+          fill={ownerFill}
+          stroke={ownerStroke}
+          strokeWidth={selected ? 4 : 2.5}
+          strokeOpacity={0.9}
         />
-      </div>
+
+        {/* Black cardinal arrows — visible on white & gray backgrounds */}
+        {CARDINAL.map(([dr, dc], i) => (
+          <Arrow key={`c${i}`} dr={dr} dc={dc} color="#0f172a" />
+        ))}
+
+        {/* White diagonal arrows — visible on black & gray backgrounds */}
+        {DIAGONAL.map(([dr, dc], i) => (
+          <Arrow key={`d${i}`} dr={dr} dc={dc} color="#f8fafc" />
+        ))}
+
+        {/* Owner indicator dot in center */}
+        <circle cx="50" cy="50" r="5.5" fill={ownerStroke} opacity="0.9" />
+      </svg>
     </div>
   );
 }
 
-function Arrow({
-  dr,
-  dc,
-  color,
-  subtle,
-}: {
-  dr: number;
-  dc: number;
-  color: string;
-  subtle?: boolean;
-}) {
-  // Place arrow head 40% from center along the direction.
+function Arrow({ dr, dc, color }: { dr: number; dc: number; color: string }) {
   const cx = 50;
   const cy = 50;
   const len = 30;
-  const tx = cx + dc * len;
-  const ty = cy + dr * len;
+  // Normalize direction so diagonals don't extend farther than cardinals.
+  const norm = Math.hypot(dr, dc) || 1;
+  const ux = dc / norm;
+  const uy = dr / norm;
+  const tx = cx + ux * len;
+  const ty = cy + uy * len;
+  // Perpendicular for triangle base.
+  const px = -uy;
+  const py = ux;
+  const headSize = 8;
+  const ax = tx + ux * headSize;
+  const ay = ty + uy * headSize;
+  const bx = tx + px * headSize * 0.7;
+  const by = ty + py * headSize * 0.7;
+  const cx2 = tx - px * headSize * 0.7;
+  const cy2 = ty - py * headSize * 0.7;
   return (
-    <g
-      style={{
-        opacity: subtle ? 0.45 : 0.85,
-      }}
-    >
+    <g style={{ opacity: 0.95 }}>
       <line
-        x1={cx}
-        y1={cy}
+        x1={cx + ux * 10}
+        y1={cy + uy * 10}
         x2={tx}
         y2={ty}
         stroke={color}
-        strokeWidth={6}
+        strokeWidth={5}
         strokeLinecap="round"
       />
-      <polygon
-        points={trianglePoints(tx, ty, dr, dc)}
-        fill={color}
-      />
+      <polygon points={`${ax},${ay} ${bx},${by} ${cx2},${cy2}`} fill={color} />
     </g>
   );
-}
-
-function trianglePoints(tx: number, ty: number, dr: number, dc: number) {
-  // Build a small triangle perpendicular to (dr, dc).
-  const size = 9;
-  const px = -dr; // perpendicular x
-  const py = dc;
-  const ax = tx + dc * size;
-  const ay = ty + dr * size;
-  const bx = tx + px * size * 0.7;
-  const by = ty + py * size * 0.7;
-  const cx2 = tx - px * size * 0.7;
-  const cy2 = ty - py * size * 0.7;
-  return `${ax},${ay} ${bx},${by} ${cx2},${cy2}`;
 }

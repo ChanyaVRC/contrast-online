@@ -6,6 +6,7 @@ import type { GameState } from "@game/types";
 import {
   ClientMsg,
   PlayerSlot,
+  Presence,
   ServerMsg,
   decode,
   encode,
@@ -104,6 +105,8 @@ export class RoomDO extends DurableObject {
     if (!session) return;
     this.leftAt.set(session.token, Date.now());
     this.broadcast({ t: "peer", event: "left", slot: session.slot }, ws);
+    // Broadcast updated presence (excluding the socket that's closing).
+    this.broadcast({ t: "presence", presence: this.currentPresence(ws) }, ws);
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
@@ -131,12 +134,22 @@ export class RoomDO extends DurableObject {
     this.setSession(ws, session);
     this.leftAt.delete(msg.token);
 
-    this.send(ws, { t: "welcome", you: playerSlot, state: this.state });
-    this.broadcast(
-      { t: "peer", event: "joined", slot: playerSlot },
-      ws,
-    );
+    const presence = this.currentPresence();
+    this.send(ws, { t: "welcome", you: playerSlot, state: this.state, presence });
+    this.broadcast({ t: "peer", event: "joined", slot: playerSlot }, ws);
+    // Broadcast presence to everyone (including the joiner) so UI agrees.
+    this.broadcastAll({ t: "presence", presence });
     await this.persist();
+  }
+
+  private currentPresence(excludedWs?: WebSocket): Presence {
+    const slots = new Set<PlayerSlot>();
+    for (const ws of this.ctx.getWebSockets()) {
+      if (ws === excludedWs) continue;
+      const session = this.sessionOf(ws);
+      if (session) slots.add(session.slot);
+    }
+    return { p1: slots.has("P1"), p2: slots.has("P2") };
   }
 
   private reclaimStaleSlots(taken: Set<string>) {
@@ -159,6 +172,15 @@ export class RoomDO extends DurableObject {
     }
     if (msg.gameId !== this.state.gameId) {
       this.send(ws, { t: "reject", clientSeq: msg.clientSeq, reason: "stale-game" });
+      return;
+    }
+    const presence = this.currentPresence();
+    if (!presence.p1 || !presence.p2) {
+      this.send(ws, {
+        t: "reject",
+        clientSeq: msg.clientSeq,
+        reason: "waiting-for-opponent",
+      });
       return;
     }
     const expectedTurnSlot = this.state.turn === 1 ? "P1" : "P2";
