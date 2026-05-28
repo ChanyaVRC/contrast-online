@@ -67,7 +67,7 @@ export function Board({
     state.turn === p && controllable === p && state.winner === null;
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-3">
+    <div className="w-full max-w-xl mx-auto flex flex-col gap-3">
       <TurnBanner state={state} controllable={controllable} hint={hint} />
 
       <div className="flex items-stretch justify-center gap-2">
