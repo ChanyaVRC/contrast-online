@@ -19,6 +19,10 @@ interface SearchOptions {
   timeBudgetMs?: number;
   /** Maximum ply depth. */
   maxDepth?: number;
+  /** Optional transposition table to reuse across calls within the same
+   *  game. Pass the same Map back on each chooseMove call to keep the
+   *  search warm; create a fresh one when a new game starts. */
+  tt?: TranspositionTable;
 }
 
 interface SearchResult {
@@ -26,6 +30,8 @@ interface SearchResult {
   score: number;
   depth: number;
   nodes: number;
+  /** Total TT size after this search, exposed so callers can monitor it. */
+  ttSize: number;
 }
 
 class TimeUp extends Error {}
@@ -37,6 +43,26 @@ interface TTEntry {
   bestActionKey?: string;
 }
 
+export type TranspositionTable = Map<string, TTEntry>;
+
+export function createTT(): TranspositionTable {
+  return new Map();
+}
+
+const TT_SIZE_LIMIT = 500_000;
+
+function trimTT(tt: TranspositionTable) {
+  if (tt.size <= TT_SIZE_LIMIT) return;
+  // Map iterates in insertion order. Drop the older half and keep the
+  // most recently inserted entries — they are more likely to relate to
+  // the current game phase.
+  const entries = Array.from(tt);
+  tt.clear();
+  for (let i = Math.floor(entries.length / 2); i < entries.length; i++) {
+    tt.set(entries[i][0], entries[i][1]);
+  }
+}
+
 /** Iterative-deepening alpha-beta search with transposition table. */
 export function chooseMove(
   root: GameState,
@@ -45,8 +71,14 @@ export function chooseMove(
 ): SearchResult {
   const deadline = performance.now() + (opts.timeBudgetMs ?? 1200);
   const maxDepth = opts.maxDepth ?? 8;
-  const tt = new Map<string, TTEntry>();
-  let best: SearchResult = { action: null, score: -Infinity, depth: 0, nodes: 0 };
+  const tt = opts.tt ?? createTT();
+  let best: SearchResult = {
+    action: null,
+    score: -Infinity,
+    depth: 0,
+    nodes: 0,
+    ttSize: tt.size,
+  };
 
   const rootActions = generateActions(root, me);
   if (rootActions.length === 0) return best;
@@ -76,6 +108,7 @@ export function chooseMove(
         score: iterationBestScore,
         depth,
         nodes: ctx.nodes,
+        ttSize: tt.size,
       };
       // Pull best-so-far to the front for the next iteration.
       const idx = orderedRoot.indexOf(iterationBestAction);
@@ -90,6 +123,8 @@ export function chooseMove(
       throw e;
     }
   }
+  trimTT(tt);
+  best.ttSize = tt.size;
   return best;
 }
 
