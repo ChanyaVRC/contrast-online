@@ -369,7 +369,7 @@ function actionKey(a: MoveAction): string {
 
 // ---- State hashing for TT ----
 
-function stateKey(state: GameState): string {
+export function stateKey(state: GameState): string {
   let board = "";
   for (const row of state.board) {
     for (const cell of row) {

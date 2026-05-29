@@ -15,7 +15,8 @@
     "cf:build": "npm run cf:clean && npm run cf:build:next && opennextjs-cloudflare build --skipNextBuild && node scripts/inject-do.mjs",
     "preview": "npm run cf:build && opennextjs-cloudflare preview",
     "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
-    "cf:types": "wrangler types"
+    "cf:types": "wrangler types",
+    "ai:book": "tsx scripts/generate-opening-book.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -35,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.22.3",
     "typescript": "^5",
     "vitest": "^4.1.7",
     "wrangler": "^4.95.0",

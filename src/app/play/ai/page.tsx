@@ -12,7 +12,11 @@ export default function AiPlayPage() {
   const [state, setState] = useState<GameState>(() => initialState("ai-1"));
   const [humanPlayer] = useState<Player>(1);
   const [thinking, setThinking] = useState(false);
-  const [stats, setStats] = useState<{ depth: number; nodes: number } | null>(null);
+  const [stats, setStats] = useState<{
+    depth: number;
+    nodes: number;
+    fromBook: boolean;
+  } | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const seqRef = useRef(0);
 
@@ -25,7 +29,11 @@ export default function AiPlayPage() {
       const res = e.data;
       if (res.type !== "result") return;
       setThinking(false);
-      setStats({ depth: res.depth, nodes: res.nodes });
+      setStats({
+        depth: res.depth,
+        nodes: res.nodes,
+        fromBook: res.fromBook,
+      });
       if (res.action) {
         setState((s) => applyAction(s, res.action!));
       }
@@ -94,7 +102,9 @@ export default function AiPlayPage() {
       />
       {stats && (
         <p className="text-[10px] text-slate-500 dark:text-slate-500">
-          CPU 最終手: depth={stats.depth} nodes={stats.nodes.toLocaleString()}
+          {stats.fromBook
+            ? "CPU 最終手: 定跡から"
+            : `CPU 最終手: depth=${stats.depth} nodes=${stats.nodes.toLocaleString()}`}
         </p>
       )}
     </main>
