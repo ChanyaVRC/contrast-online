@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { CARDINAL, DIAGONAL } from "@game/types";
+import { PieceArt } from "./pieceArt";
 
 /**
  * Floating "?" button that opens a modal summarising the rules of
@@ -160,17 +160,8 @@ function Section({
 // ---- Diagrams ----
 
 function MovementCard({ kind }: { kind: "white" | "black" | "gray" }) {
-  const dirs =
-    kind === "white"
-      ? CARDINAL
-      : kind === "black"
-        ? DIAGONAL
-        : [...CARDINAL, ...DIAGONAL];
   const cellBg =
     kind === "white" ? "#f8fafc" : kind === "black" ? "#0f172a" : "#94a3b8";
-  const arrowColor = kind === "black" ? "#f8fafc" : "#0f172a";
-  const ownerStroke = "#0284c7";
-  const ownerFill = "rgba(2, 132, 199, 0.10)";
   const label =
     kind === "white" ? "白マス" : kind === "black" ? "黒タイル" : "グレータイル";
   const desc =
@@ -180,6 +171,9 @@ function MovementCard({ kind }: { kind: "white" | "black" | "gray" }) {
         ? "斜め (4 方向)"
         : "全方向 (8 方向)";
 
+  // Use the SAME piece art as the live board so the illustration matches
+  // exactly what the player will see. The cell background hides whichever
+  // arrow set has matching color, which IS the rule being explained.
   return (
     <div className="flex flex-col items-center gap-2">
       <div
@@ -187,17 +181,7 @@ function MovementCard({ kind }: { kind: "white" | "black" | "gray" }) {
         style={{ background: cellBg }}
       >
         <svg viewBox="0 0 100 100" className="w-full h-full" aria-hidden>
-          <path
-            d="M 18 92 L 18 31 Q 50 -3 82 31 L 82 92 Z"
-            fill={ownerFill}
-            stroke={ownerStroke}
-            strokeWidth={2}
-            strokeOpacity={0.85}
-            strokeLinejoin="round"
-          />
-          {dirs.map(([dr, dc], i) => (
-            <DiagramArrow key={i} dr={dr} dc={dc} color={arrowColor} />
-          ))}
+          <PieceArt owner={1} />
         </svg>
       </div>
       <div className="text-center">
@@ -207,51 +191,6 @@ function MovementCard({ kind }: { kind: "white" | "black" | "gray" }) {
         </div>
       </div>
     </div>
-  );
-}
-
-function DiagramArrow({
-  dr,
-  dc,
-  color,
-}: {
-  dr: number;
-  dc: number;
-  color: string;
-}) {
-  const cx = 50;
-  const cy = 50;
-  const len = 26;
-  const norm = Math.hypot(dr, dc) || 1;
-  const ux = dc / norm;
-  const uy = dr / norm;
-  const tx = cx + ux * len;
-  const ty = cy + uy * len;
-  const px = -uy;
-  const py = ux;
-  const headSize = 7;
-  const ax = tx + ux * headSize;
-  const ay = ty + uy * headSize;
-  const bx = tx + px * headSize * 0.7;
-  const by = ty + py * headSize * 0.7;
-  const cx2 = tx - px * headSize * 0.7;
-  const cy2 = ty - py * headSize * 0.7;
-  return (
-    <g style={{ opacity: 0.95 }}>
-      <line
-        x1={cx + ux * 12}
-        y1={cy + uy * 12}
-        x2={tx}
-        y2={ty}
-        stroke={color}
-        strokeWidth={4.5}
-        strokeLinecap="round"
-      />
-      <polygon
-        points={`${ax},${ay} ${bx},${by} ${cx2},${cy2}`}
-        fill={color}
-      />
-    </g>
   );
 }
 
@@ -373,22 +312,14 @@ function MiniPiece({
   owner: 1 | 2;
   flip?: boolean;
 }) {
-  const stroke = owner === 1 ? "#0284c7" : "#e11d48";
-  const fill = owner === 1 ? "rgba(2,132,199,0.10)" : "rgba(225,29,72,0.10)";
-  // Same arched path as Piece.tsx, scaled down: original is in viewBox 0..100
-  // centered at (50, 50). We translate to (cx, cy) and scale by (scale/50).
+  // Reuse the live PieceArt (same arched body + cardinal-black /
+  // diagonal-white arrow pattern + owner dot). PieceArt assumes a
+  // 100×100 viewBox centered at (50, 50); translate + scale to position
+  // it in the parent SVG's coordinates.
   const k = scale / 50;
-  const transform = `translate(${cx}, ${cy}) scale(${k}) ${flip ? "rotate(180)" : ""} translate(-50, -50)`;
   return (
-    <g transform={transform}>
-      <path
-        d="M 8 92 L 8 29 Q 50 -13 92 29 L 92 92 Z"
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={3}
-        strokeLinejoin="round"
-      />
-      <circle cx={50} cy={50} r={6} fill={stroke} />
+    <g transform={`translate(${cx}, ${cy}) scale(${k}) translate(-50, -50)`}>
+      <PieceArt owner={owner} flip={flip} />
     </g>
   );
 }
