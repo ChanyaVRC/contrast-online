@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { RulesButton } from "@/components/RulesButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
 
@@ -43,7 +44,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
       <body className="min-h-full flex flex-col bg-gradient-to-b from-slate-100 to-slate-200 text-slate-900 dark:from-slate-900 dark:to-slate-950 dark:text-slate-100">
-        <ThemeToggle />
+        <div className="fixed bottom-4 right-4 z-50 flex items-end gap-2">
+          <RulesButton />
+          <ThemeToggle />
+        </div>
         {children}
       </body>
     </html>

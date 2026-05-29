@@ -40,7 +40,7 @@ export function ThemeToggle() {
         dark === null ? "テーマ" : dark ? "ライトモードに切り替え" : "ダークモードに切り替え"
       }
       className={[
-        "fixed bottom-4 right-4 z-50 h-11 w-11 flex items-center justify-center rounded-full",
+        "h-11 w-11 flex items-center justify-center rounded-full",
         "border border-slate-300 bg-white/90 backdrop-blur shadow-md",
         "hover:bg-white hover:scale-105 active:scale-95 transition",
         "dark:border-slate-700 dark:bg-slate-800/90 dark:hover:bg-slate-800",
