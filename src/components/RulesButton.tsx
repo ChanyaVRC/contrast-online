@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { CARDINAL, DIAGONAL } from "@game/types";
 
 /**
  * Floating "?" button that opens a modal summarising the rules of
@@ -17,8 +18,6 @@ export function RulesButton() {
     dialogRef.current?.close();
   }
   function onBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
-    // Clicks on the dialog itself land on the <dialog> element when they
-    // hit the backdrop. Clicks inside content land on inner elements.
     if (e.target === dialogRef.current) close();
   }
 
@@ -44,13 +43,13 @@ export function RulesButton() {
         ref={dialogRef}
         onClick={onBackdropClick}
         className={[
-          "rounded-2xl p-0 m-auto w-full max-w-md",
+          "rounded-2xl p-0 m-auto w-full max-w-2xl",
           "bg-white text-slate-900 shadow-2xl",
           "dark:bg-slate-900 dark:text-slate-100",
           "backdrop:bg-black/50 backdrop:backdrop-blur-sm",
         ].join(" ")}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 rounded-t-2xl">
           <h2 className="text-base font-bold">ルール</h2>
           <button
             type="button"
@@ -62,18 +61,19 @@ export function RulesButton() {
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-4 text-sm max-h-[70vh] overflow-y-auto">
+        <div className="px-5 py-4 space-y-5 text-sm max-h-[75vh] overflow-y-auto">
           <Section title="ゲームの目的">
             自分のコマを 1 つでも相手のホーム列（自陣の反対側の一段）に
             到達させたら勝ち。
           </Section>
 
-          <Section title="ボードとコマ">
-            <ul className="list-disc pl-5 space-y-1">
-              <li>5×5 のマス目</li>
-              <li>各プレイヤー 5 個のコマ、最下段に並べる</li>
-              <li>透明なコマには黒の十字矢印と白の斜め矢印が描かれており、下のタイル色によって見える矢印が変わる</li>
-            </ul>
+          <Section title="初期配置">
+            <p className="mb-3">
+              5×5 のマス目。各プレイヤー 5 個のコマを最下段に並べる。
+            </p>
+            <div className="flex justify-center">
+              <SetupDiagram />
+            </div>
           </Section>
 
           <Section title="タイル（手持ち）">
@@ -90,36 +90,32 @@ export function RulesButton() {
                 <strong>必須</strong>: 自分のコマを 1 つ動かす
               </li>
               <li>
-                <strong>任意</strong>: 空マスに自分のタイルを 1 枚置く（置かなくてもよい）
+                <strong>任意</strong>: 空マスに自分のタイルを 1 枚置く
               </li>
             </ol>
           </Section>
 
           <Section title="コマの動き">
-            現在乗っているマスの背景色で可動方向が決まる：
-            <table className="w-full mt-2 text-xs">
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                <tr>
-                  <td className="py-1.5 pr-2 font-medium">白マス</td>
-                  <td className="py-1.5 text-slate-600 dark:text-slate-400">上下左右 (4 方向)</td>
-                </tr>
-                <tr>
-                  <td className="py-1.5 pr-2 font-medium">黒タイル</td>
-                  <td className="py-1.5 text-slate-600 dark:text-slate-400">斜め 4 方向</td>
-                </tr>
-                <tr>
-                  <td className="py-1.5 pr-2 font-medium">グレータイル</td>
-                  <td className="py-1.5 text-slate-600 dark:text-slate-400">全 8 方向</td>
-                </tr>
-              </tbody>
-            </table>
+            <p className="mb-3">
+              現在乗っているマスの背景色で可動方向が変わる。
+            </p>
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
+              <MovementCard kind="white" />
+              <MovementCard kind="black" />
+              <MovementCard kind="gray" />
+            </div>
           </Section>
 
           <Section title="飛び越し">
-            進行方向の隣接マスに <strong>自分のコマ</strong> がある場合、
-            そのコマを飛び越して着地できる。連続して自分のコマが並んでいれば
-            まとめて飛び越せ、最初の空マスに着地する。相手のコマは飛び越せず、
-            ブロックされる。
+            <p className="mb-3">
+              進行方向の隣接マスに <strong>自分のコマ</strong> がある場合、
+              そのコマを飛び越して着地できる。連続して自分のコマが並んでいれば
+              まとめて飛び越せ、最初の空マスに着地する。
+              <strong>相手のコマは飛び越せず</strong>、ブロックされる。
+            </p>
+            <div className="flex justify-center">
+              <JumpDiagram />
+            </div>
           </Section>
 
           <Section title="勝利条件">
@@ -127,7 +123,7 @@ export function RulesButton() {
             瞬間に勝ち。
           </Section>
 
-          <p className="text-xs text-slate-500 dark:text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
+          <p className="text-xs text-slate-500 dark:text-slate-500 pt-3 border-t border-slate-200 dark:border-slate-800">
             原作:{" "}
             <a
               href="https://029products-contrast.studio.site/"
@@ -158,5 +154,241 @@ function Section({
       </h3>
       <div className="text-sm leading-relaxed">{children}</div>
     </section>
+  );
+}
+
+// ---- Diagrams ----
+
+function MovementCard({ kind }: { kind: "white" | "black" | "gray" }) {
+  const dirs =
+    kind === "white"
+      ? CARDINAL
+      : kind === "black"
+        ? DIAGONAL
+        : [...CARDINAL, ...DIAGONAL];
+  const cellBg =
+    kind === "white" ? "#f8fafc" : kind === "black" ? "#0f172a" : "#94a3b8";
+  const arrowColor = kind === "black" ? "#f8fafc" : "#0f172a";
+  const ownerStroke = "#0284c7";
+  const ownerFill = "rgba(2, 132, 199, 0.10)";
+  const label =
+    kind === "white" ? "白マス" : kind === "black" ? "黒タイル" : "グレータイル";
+  const desc =
+    kind === "white"
+      ? "上下左右 (4 方向)"
+      : kind === "black"
+        ? "斜め (4 方向)"
+        : "全方向 (8 方向)";
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div
+        className="aspect-square w-full max-w-[120px] rounded-sm border border-slate-300 dark:border-slate-700 overflow-hidden"
+        style={{ background: cellBg }}
+      >
+        <svg viewBox="0 0 100 100" className="w-full h-full" aria-hidden>
+          <path
+            d="M 18 92 L 18 31 Q 50 -3 82 31 L 82 92 Z"
+            fill={ownerFill}
+            stroke={ownerStroke}
+            strokeWidth={2}
+            strokeOpacity={0.85}
+            strokeLinejoin="round"
+          />
+          {dirs.map(([dr, dc], i) => (
+            <DiagramArrow key={i} dr={dr} dc={dc} color={arrowColor} />
+          ))}
+        </svg>
+      </div>
+      <div className="text-center">
+        <div className="text-xs font-bold">{label}</div>
+        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+          {desc}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DiagramArrow({
+  dr,
+  dc,
+  color,
+}: {
+  dr: number;
+  dc: number;
+  color: string;
+}) {
+  const cx = 50;
+  const cy = 50;
+  const len = 26;
+  const norm = Math.hypot(dr, dc) || 1;
+  const ux = dc / norm;
+  const uy = dr / norm;
+  const tx = cx + ux * len;
+  const ty = cy + uy * len;
+  const px = -uy;
+  const py = ux;
+  const headSize = 7;
+  const ax = tx + ux * headSize;
+  const ay = ty + uy * headSize;
+  const bx = tx + px * headSize * 0.7;
+  const by = ty + py * headSize * 0.7;
+  const cx2 = tx - px * headSize * 0.7;
+  const cy2 = ty - py * headSize * 0.7;
+  return (
+    <g style={{ opacity: 0.95 }}>
+      <line
+        x1={cx + ux * 12}
+        y1={cy + uy * 12}
+        x2={tx}
+        y2={ty}
+        stroke={color}
+        strokeWidth={4.5}
+        strokeLinecap="round"
+      />
+      <polygon
+        points={`${ax},${ay} ${bx},${by} ${cx2},${cy2}`}
+        fill={color}
+      />
+    </g>
+  );
+}
+
+/** A small 5×5 setup, P1 at the bottom (sky), P2 at the top (rose). */
+function SetupDiagram() {
+  const size = 200;
+  const cell = size / 5;
+  const cells: { r: number; c: number; owner: 1 | 2 | null }[] = [];
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      const owner = r === 0 ? 2 : r === 4 ? 1 : null;
+      cells.push({ r, c, owner });
+    }
+  }
+  return (
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      width={size}
+      height={size}
+      className="rounded border border-slate-300 dark:border-slate-700"
+      aria-hidden
+    >
+      <rect width={size} height={size} fill="#f8fafc" />
+      {/* Grid lines */}
+      {Array.from({ length: 6 }).map((_, i) => (
+        <g key={i}>
+          <line x1={0} x2={size} y1={i * cell} y2={i * cell} stroke="#cbd5e1" strokeWidth={0.5} />
+          <line x1={i * cell} x2={i * cell} y1={0} y2={size} stroke="#cbd5e1" strokeWidth={0.5} />
+        </g>
+      ))}
+      {/* Pieces */}
+      {cells
+        .filter((c) => c.owner !== null)
+        .map(({ r, c, owner }) => (
+          <MiniPiece
+            key={`${r}-${c}`}
+            cx={c * cell + cell / 2}
+            cy={r * cell + cell / 2}
+            scale={cell * 0.42}
+            owner={owner as 1 | 2}
+            flip={owner === 2}
+          />
+        ))}
+    </svg>
+  );
+}
+
+/** A horizontal strip showing the jump rule. */
+function JumpDiagram() {
+  const size = 80;
+  const cells = 5;
+  const width = size * cells;
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${size}`}
+      width={Math.min(width, 400)}
+      height={Math.min(size, 80)}
+      className="rounded border border-slate-300 dark:border-slate-700"
+      aria-hidden
+    >
+      <rect width={width} height={size} fill="#f8fafc" />
+      {Array.from({ length: cells + 1 }).map((_, i) => (
+        <line
+          key={i}
+          x1={i * size}
+          x2={i * size}
+          y1={0}
+          y2={size}
+          stroke="#cbd5e1"
+          strokeWidth={0.5}
+        />
+      ))}
+      {/* P1 mover at cell 0 */}
+      <MiniPiece cx={size * 0.5} cy={size / 2} scale={size * 0.36} owner={1} />
+      {/* P1 own piece at cell 1 (to be jumped) */}
+      <MiniPiece cx={size * 1.5} cy={size / 2} scale={size * 0.36} owner={1} />
+      {/* P1 own piece at cell 2 (also jumped) */}
+      <MiniPiece cx={size * 2.5} cy={size / 2} scale={size * 0.36} owner={1} />
+      {/* Empty cell 3 (landing) — drawn as dashed target */}
+      <circle
+        cx={size * 3.5}
+        cy={size / 2}
+        r={size * 0.3}
+        fill="none"
+        stroke="#10b981"
+        strokeWidth={2}
+        strokeDasharray="4 3"
+      />
+      {/* P2 piece at cell 4 (would block; here just for context) */}
+      <MiniPiece cx={size * 4.5} cy={size / 2} scale={size * 0.36} owner={2} flip />
+      {/* Jump arrow from cell 0 to cell 3 */}
+      <g>
+        <path
+          d={`M ${size * 0.6} ${size * 0.25} Q ${size * 2} ${size * -0.05} ${size * 3.4} ${size * 0.25}`}
+          fill="none"
+          stroke="#10b981"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
+        <polygon
+          points={`${size * 3.4},${size * 0.25} ${size * 3.2},${size * 0.13} ${size * 3.2},${size * 0.37}`}
+          fill="#10b981"
+        />
+      </g>
+    </svg>
+  );
+}
+
+function MiniPiece({
+  cx,
+  cy,
+  scale,
+  owner,
+  flip,
+}: {
+  cx: number;
+  cy: number;
+  scale: number;
+  owner: 1 | 2;
+  flip?: boolean;
+}) {
+  const stroke = owner === 1 ? "#0284c7" : "#e11d48";
+  const fill = owner === 1 ? "rgba(2,132,199,0.10)" : "rgba(225,29,72,0.10)";
+  // Same arched path as Piece.tsx, scaled down: original is in viewBox 0..100
+  // centered at (50, 50). We translate to (cx, cy) and scale by (scale/50).
+  const k = scale / 50;
+  const transform = `translate(${cx}, ${cy}) scale(${k}) ${flip ? "rotate(180)" : ""} translate(-50, -50)`;
+  return (
+    <g transform={transform}>
+      <path
+        d="M 8 92 L 8 29 Q 50 -13 92 29 L 92 92 Z"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={3}
+        strokeLinejoin="round"
+      />
+      <circle cx={50} cy={50} r={6} fill={stroke} />
+    </g>
   );
 }
