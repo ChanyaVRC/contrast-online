@@ -1,131 +1,120 @@
-// Offline opening book generator.
+// Parallel opening-book generator.
 //
-// Walks a few plies into the game tree, at each visited position runs a
-// deep search to pick the best move, and writes
-//   { canonicalKey: { from: [r,c], to: [r,c], tilePlace?: { ... } } }
-// to public/opening-book.json. Storing in canonical form deduplicates
-// across the 4-element symmetry group (identity, mirror, rotswap,
-// mirror+rotswap), so the book covers up to 4 distinct game positions
-// per stored entry.
+// BFS the game tree up to PLIES half-moves. Each visited position is a
+// "job" handed to one of N worker threads; the worker does a deep
+// alpha-beta search and returns the best move plus its top-BRANCH
+// candidate replies (which become children to enqueue). Symmetry
+// canonicalisation deduplicates across the 4-orbit so the same
+// equivalence-class is searched only once.
 //
-// At runtime the AI worker computes the canonical key for the current
-// position, looks the entry up, then maps the stored move back into the
-// live coordinate system using the same transform.
+// Tunables can also come from environment variables:
+//   WORKERS, PLIES, BRANCH, SEARCH_TIME, SEARCH_DEPTH, RANK_TIME
+import { Worker } from "node:worker_threads";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import {
-  chooseMove,
-  createTT,
-} from "../src/lib/ai/search.ts";
-import {
-  canonicalize,
-  moveToCompact,
-  transformCompactMove,
-} from "../src/lib/ai/symmetry.ts";
-import {
-  applyAction,
-  buildPieceGrid,
-  legalDestinations,
-} from "../src/lib/game/rules.ts";
+import { canonicalize } from "../src/lib/ai/symmetry.ts";
 import { initialState } from "../src/lib/game/initial.ts";
 
-const PLIES = 5;
-const BRANCH = 3;
-const SEARCH_TIME_MS = 2000;
-const SEARCH_DEPTH = 8;
-const RANK_TIME_MS = 250;
+const envInt = (name, fallback) => {
+  const v = process.env[name];
+  if (!v) return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
 
+const NUM_WORKERS = envInt("WORKERS", Math.max(1, os.cpus().length - 1));
+const PLIES = envInt("PLIES", 6);
+const BRANCH = envInt("BRANCH", 3);
+const SEARCH_TIME_MS = envInt("SEARCH_TIME", 4000);
+const SEARCH_DEPTH = envInt("SEARCH_DEPTH", 10);
+const RANK_TIME_MS = envInt("RANK_TIME", 300);
+
+const workerPath = new URL("./book-worker.mjs", import.meta.url);
+
+console.log(
+  `Generator: PLIES=${PLIES} BRANCH=${BRANCH} ` +
+    `SEARCH=${SEARCH_TIME_MS}ms/depth${SEARCH_DEPTH} RANK=${RANK_TIME_MS}ms ` +
+    `WORKERS=${NUM_WORKERS}`,
+);
+
+const workers = Array.from(
+  { length: NUM_WORKERS },
+  () => new Worker(workerPath, { execArgv: ["--import", "tsx"] }),
+);
+
+const idleWorkers = [...workers];
 const book = {};
 const visited = new Set();
-let searches = 0;
+const queue = [];
+let inFlight = 0;
+let completed = 0;
 let collisions = 0;
 
-function listMoveActions(state) {
-  const out = [];
-  const grid = buildPieceGrid(state);
-  for (const piece of state.pieces) {
-    if (piece.owner !== state.turn) continue;
-    for (const dest of legalDestinations(state, piece, grid)) {
-      out.push({
-        kind: "move",
-        pieceId: piece.id,
-        to: dest.to,
-        tilePlace: null,
-      });
-    }
-  }
-  return out;
-}
-
-function rankTopMoves(state, k) {
-  const candidates = listMoveActions(state);
-  const scored = candidates.map((action) => {
-    const next = applyAction(state, action);
-    if (next.winner !== null) {
-      return {
-        action,
-        score:
-          next.winner === state.turn ? 9_000_000 : -9_000_000,
-      };
-    }
-    const res = chooseMove(next, next.turn, {
-      timeBudgetMs: RANK_TIME_MS,
-      maxDepth: 5,
-    });
-    return { action, score: -res.score };
-  });
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, k).map((s) => s.action);
-}
-
-function expand(state, pliesLeft) {
-  if (pliesLeft <= 0 || state.winner !== null) return;
-
-  const { key: cKey, transform: cT } = canonicalize(state);
-
-  // Visited dedup uses the canonical key — symmetric branches all
-  // share the same key and only get searched once.
-  if (visited.has(cKey)) {
+function tryEnqueue(state, plies) {
+  if (plies <= 0 || state.winner !== null) return;
+  const { key } = canonicalize(state);
+  if (visited.has(key)) {
     collisions++;
     return;
   }
-  visited.add(cKey);
-
-  searches++;
-  const t0 = Date.now();
-  const tt = createTT();
-  const res = chooseMove(state, state.turn, {
-    timeBudgetMs: SEARCH_TIME_MS,
-    maxDepth: SEARCH_DEPTH,
-    tt,
-  });
-  if (!res.action) return;
-
-  // Store in canonical coords: map the chosen move into canonical space.
-  const compact = moveToCompact(state, res.action);
-  const canonicalCompact = transformCompactMove(compact, cT);
-  book[cKey] = canonicalCompact;
-
-  const dt = Date.now() - t0;
-  process.stdout.write(
-    `  [${searches.toString().padStart(3)}] plies=${PLIES - pliesLeft} ` +
-      `depth=${res.depth} nodes=${res.nodes.toLocaleString().padStart(9)} ` +
-      `${dt.toFixed(0)}ms\n`,
-  );
-
-  const replies = rankTopMoves(state, BRANCH);
-  for (const move of replies) {
-    const next = applyAction(state, move);
-    expand(next, pliesLeft - 1);
-  }
+  visited.add(key);
+  queue.push({ state, plies });
 }
 
-console.log(
-  `Generating opening book: PLIES=${PLIES} BRANCH=${BRANCH} ` +
-    `SEARCH=${SEARCH_TIME_MS}ms/depth${SEARCH_DEPTH} (with 4× symmetry dedup)`,
-);
+tryEnqueue(initialState(), PLIES);
+
 const t0 = Date.now();
-expand(initialState(), PLIES);
+
+await new Promise((resolve) => {
+  function dispatch() {
+    while (queue.length > 0 && idleWorkers.length > 0) {
+      const worker = idleWorkers.pop();
+      const job = queue.shift();
+      inFlight++;
+
+      const handler = (result) => {
+        worker.off("message", handler);
+        idleWorkers.push(worker);
+        inFlight--;
+        completed++;
+
+        if (result.canonicalKey) {
+          book[result.canonicalKey] = result.canonicalMove;
+          for (const child of result.children) {
+            tryEnqueue(child, job.plies - 1);
+          }
+        }
+
+        process.stdout.write(
+          `[${completed.toString().padStart(4)}] ` +
+            `plies=${(PLIES - job.plies).toString().padStart(2)} ` +
+            `depth=${result.info.depth.toString().padStart(2)} ` +
+            `nodes=${result.info.nodes.toLocaleString().padStart(10)} ` +
+            `${result.info.time.toFixed(0).padStart(5)}ms ` +
+            `(queue=${queue.length} active=${inFlight})\n`,
+        );
+
+        if (queue.length === 0 && inFlight === 0) resolve();
+        else dispatch();
+      };
+      worker.on("message", handler);
+
+      worker.postMessage({
+        state: job.state,
+        branch: BRANCH,
+        searchTimeMs: SEARCH_TIME_MS,
+        searchDepth: SEARCH_DEPTH,
+        rankTimeMs: RANK_TIME_MS,
+      });
+    }
+  }
+
+  dispatch();
+});
+
+await Promise.all(workers.map((w) => w.terminate()));
+
 const dt = (Date.now() - t0) / 1000;
 
 const outDir = path.join("public");
@@ -137,5 +126,5 @@ const sizeKB = fs.statSync(outPath).size / 1024;
 console.log(
   `\nWrote ${Object.keys(book).length} positions ` +
     `(${sizeKB.toFixed(1)} KB) to ${outPath} in ${dt.toFixed(0)}s ` +
-    `across ${searches} deep searches (${collisions} symmetry collisions).`,
+    `(${completed} searches, ${collisions} symmetry collisions, ${NUM_WORKERS} workers)`,
 );
