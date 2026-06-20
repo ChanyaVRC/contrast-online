@@ -24,11 +24,11 @@ const envInt = (name, fallback) => {
 };
 
 const NUM_WORKERS = envInt("WORKERS", Math.max(1, os.cpus().length - 1));
-const PLIES = envInt("PLIES", 6);
+const PLIES = envInt("PLIES", 8);
 const BRANCH = envInt("BRANCH", 3);
-const SEARCH_TIME_MS = envInt("SEARCH_TIME", 4000);
-const SEARCH_DEPTH = envInt("SEARCH_DEPTH", 10);
-const RANK_TIME_MS = envInt("RANK_TIME", 300);
+const SEARCH_TIME_MS = envInt("SEARCH_TIME", 6000);
+const SEARCH_DEPTH = envInt("SEARCH_DEPTH", 12);
+const RANK_TIME_MS = envInt("RANK_TIME", 400);
 
 const workerPath = new URL("./book-worker.mjs", import.meta.url);
 
