@@ -6,7 +6,7 @@ import { Board } from "@/components/Board";
 import { initialState } from "@game/initial";
 import { applyAction } from "@game/rules";
 import type { GameState, MoveAction, Player } from "@game/types";
-import type { AiRequest, AiResponse } from "@/lib/ai/worker";
+import { AiCoordinator } from "@/lib/ai/coordinator";
 
 export default function AiPlayPage() {
   const [state, setState] = useState<GameState>(() => initialState("ai-1"));
@@ -16,49 +16,45 @@ export default function AiPlayPage() {
     depth: number;
     nodes: number;
     fromBook: boolean;
+    workerCount: number;
   } | null>(null);
-  const workerRef = useRef<Worker | null>(null);
+  const coordRef = useRef<AiCoordinator | null>(null);
   const seqRef = useRef(0);
 
   useEffect(() => {
-    const w = new Worker(new URL("@/lib/ai/worker.ts", import.meta.url), {
-      type: "module",
-    });
-    workerRef.current = w;
-    w.onmessage = (e: MessageEvent<AiResponse>) => {
-      const res = e.data;
-      if (res.type !== "result") return;
-      setThinking(false);
-      setStats({
-        depth: res.depth,
-        nodes: res.nodes,
-        fromBook: res.fromBook,
-      });
-      if (res.action) {
-        setState((s) => applyAction(s, res.action!));
-      }
-    };
+    const coord = new AiCoordinator();
+    coordRef.current = coord;
     return () => {
-      w.terminate();
-      workerRef.current = null;
+      coord.destroy();
+      coordRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     if (state.winner !== null) return;
     if (state.turn === humanPlayer) return;
-    if (!workerRef.current) return;
+    const coord = coordRef.current;
+    if (!coord) return;
     setThinking(true);
-    const reqId = ++seqRef.current;
-    const req: AiRequest = {
-      type: "search",
-      state,
-      me: state.turn,
-      timeBudgetMs: 1500,
-      maxDepth: 10,
-      reqId,
-    };
-    workerRef.current.postMessage(req);
+    const myReq = ++seqRef.current;
+    (async () => {
+      const res = await coord.search(state, state.turn, {
+        timeBudgetMs: 1500,
+        maxDepth: 10,
+      });
+      // Ignore stale responses if the player has moved meanwhile.
+      if (myReq !== seqRef.current) return;
+      setThinking(false);
+      setStats({
+        depth: res.depth,
+        nodes: res.nodes,
+        fromBook: res.fromBook,
+        workerCount: res.workerCount,
+      });
+      if (res.action) {
+        setState((s) => applyAction(s, res.action!));
+      }
+    })();
   }, [state, humanPlayer]);
 
   function onMove(action: MoveAction) {
@@ -104,7 +100,7 @@ export default function AiPlayPage() {
         <p className="text-[10px] text-slate-500 dark:text-slate-500">
           {stats.fromBook
             ? "CPU 最終手: 定跡から"
-            : `CPU 最終手: depth=${stats.depth} nodes=${stats.nodes.toLocaleString()}`}
+            : `CPU 最終手: depth=${stats.depth} nodes=${stats.nodes.toLocaleString()} (workers=${stats.workerCount})`}
         </p>
       )}
     </main>

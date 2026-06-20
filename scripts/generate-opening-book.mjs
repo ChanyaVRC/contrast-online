@@ -1,20 +1,27 @@
 // Offline opening book generator.
 //
 // Walks a few plies into the game tree, at each visited position runs a
-// deep search to pick the best move, and writes the position → action
-// mapping to public/opening-book.json. The AI Web Worker fetches this
-// at startup and short-circuits chooseMove when the current position is
-// in the book.
+// deep search to pick the best move, and writes
+//   { canonicalKey: { from: [r,c], to: [r,c], tilePlace?: { ... } } }
+// to public/opening-book.json. Storing in canonical form deduplicates
+// across the 4-element symmetry group (identity, mirror, rotswap,
+// mirror+rotswap), so the book covers up to 4 distinct game positions
+// per stored entry.
 //
-// Parameters are tuned for a ~5 minute generation on a desktop. Bump
-// PLIES or BRANCH for a wider/deeper book at quadratic cost.
+// At runtime the AI worker computes the canonical key for the current
+// position, looks the entry up, then maps the stored move back into the
+// live coordinate system using the same transform.
 import fs from "node:fs";
 import path from "node:path";
 import {
   chooseMove,
   createTT,
-  stateKey,
 } from "../src/lib/ai/search.ts";
+import {
+  canonicalize,
+  moveToCompact,
+  transformCompactMove,
+} from "../src/lib/ai/symmetry.ts";
 import {
   applyAction,
   buildPieceGrid,
@@ -22,17 +29,17 @@ import {
 } from "../src/lib/game/rules.ts";
 import { initialState } from "../src/lib/game/initial.ts";
 
-const PLIES = 5;          // walk this many half-moves into the tree
-const BRANCH = 3;         // explore the top-K replies at each branch
+const PLIES = 5;
+const BRANCH = 3;
 const SEARCH_TIME_MS = 2000;
 const SEARCH_DEPTH = 8;
-const RANK_TIME_MS = 250; // shallow search used to rank candidate replies
+const RANK_TIME_MS = 250;
 
 const book = {};
 const visited = new Set();
 let searches = 0;
+let collisions = 0;
 
-/** Enumerate every legal move-only action for the side to move. */
 function listMoveActions(state) {
   const out = [];
   const grid = buildPieceGrid(state);
@@ -50,16 +57,11 @@ function listMoveActions(state) {
   return out;
 }
 
-/** Rank the top-K candidate moves for the player to move by playing each
- *  and running a shallow search from the resulting position. The score
- *  returned by chooseMove is from the next-to-move's perspective, so we
- *  negate to score from the mover's perspective. */
 function rankTopMoves(state, k) {
   const candidates = listMoveActions(state);
   const scored = candidates.map((action) => {
     const next = applyAction(state, action);
     if (next.winner !== null) {
-      // Immediate win for the mover is worth a huge positive score.
       return {
         action,
         score:
@@ -78,9 +80,16 @@ function rankTopMoves(state, k) {
 
 function expand(state, pliesLeft) {
   if (pliesLeft <= 0 || state.winner !== null) return;
-  const key = stateKey(state);
-  if (visited.has(key)) return;
-  visited.add(key);
+
+  const { key: cKey, transform: cT } = canonicalize(state);
+
+  // Visited dedup uses the canonical key — symmetric branches all
+  // share the same key and only get searched once.
+  if (visited.has(cKey)) {
+    collisions++;
+    return;
+  }
+  visited.add(cKey);
 
   searches++;
   const t0 = Date.now();
@@ -91,7 +100,11 @@ function expand(state, pliesLeft) {
     tt,
   });
   if (!res.action) return;
-  book[key] = res.action;
+
+  // Store in canonical coords: map the chosen move into canonical space.
+  const compact = moveToCompact(state, res.action);
+  const canonicalCompact = transformCompactMove(compact, cT);
+  book[cKey] = canonicalCompact;
 
   const dt = Date.now() - t0;
   process.stdout.write(
@@ -109,7 +122,7 @@ function expand(state, pliesLeft) {
 
 console.log(
   `Generating opening book: PLIES=${PLIES} BRANCH=${BRANCH} ` +
-    `SEARCH=${SEARCH_TIME_MS}ms/depth${SEARCH_DEPTH}`,
+    `SEARCH=${SEARCH_TIME_MS}ms/depth${SEARCH_DEPTH} (with 4× symmetry dedup)`,
 );
 const t0 = Date.now();
 expand(initialState(), PLIES);
@@ -124,5 +137,5 @@ const sizeKB = fs.statSync(outPath).size / 1024;
 console.log(
   `\nWrote ${Object.keys(book).length} positions ` +
     `(${sizeKB.toFixed(1)} KB) to ${outPath} in ${dt.toFixed(0)}s ` +
-    `across ${searches} deep searches.`,
+    `across ${searches} deep searches (${collisions} symmetry collisions).`,
 );

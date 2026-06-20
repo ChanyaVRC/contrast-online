@@ -23,6 +23,9 @@ interface SearchOptions {
    *  game. Pass the same Map back on each chooseMove call to keep the
    *  search warm; create a fresh one when a new game starts. */
   tt?: TranspositionTable;
+  /** If provided, only these root moves are searched. Used by the
+   *  parallel coordinator to split the root across N workers. */
+  rootActions?: MoveAction[];
 }
 
 interface SearchResult {
@@ -80,7 +83,7 @@ export function chooseMove(
     ttSize: tt.size,
   };
 
-  const rootActions = generateActions(root, me);
+  const rootActions = opts.rootActions ?? generateActions(root, me);
   if (rootActions.length === 0) return best;
 
   // Order root actions by quick eval-delta.
@@ -209,7 +212,7 @@ interface TileCandidate {
   at: Coord;
 }
 
-function generateActions(state: GameState, mover: Player): MoveAction[] {
+export function generateActions(state: GameState, mover: Player): MoveAction[] {
   if (state.winner !== null) return [];
   const out: MoveAction[] = [];
   const myPieces = state.pieces.filter((p) => p.owner === mover);
