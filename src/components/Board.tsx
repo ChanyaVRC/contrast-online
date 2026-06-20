@@ -60,9 +60,11 @@ export function Board({
   const destinations: Coord[] =
     phase.kind === "piece-selected" ? phase.destinations : [];
 
-  // Fixed layout: P2 tray top-right, P1 tray bottom-right, regardless of
-  // which player the viewer controls. (Perspective only flips the board
-  // row order.)
+  // Each viewer sees their own tray at the bottom-right (near their
+  // pieces) and the opponent's at the top-left, mirroring the row-order
+  // flip applied to the board itself.
+  const topPlayer: Player = perspective === 1 ? 2 : 1;
+  const bottomPlayer: Player = perspective;
   const trayActiveFor = (p: Player) =>
     state.turn === p && controllable === p && state.winner === null;
 
@@ -71,15 +73,15 @@ export function Board({
       <TurnBanner state={state} controllable={controllable} hint={hint} />
 
       <div className="flex items-stretch justify-center gap-2">
-        {/* P2 tray pinned to the top of the row — sits next to P2's pieces */}
+        {/* Opponent's tray — top-left of the row */}
         <div className="self-start">
           <TileTray
-            player={2}
+            player={topPlayer}
             orientation="vertical"
-            inventory={state.inventories[2]}
-            active={trayActiveFor(2)}
-            selected={trayActiveFor(2) ? tile : null}
-            onSelect={trayActiveFor(2) ? setTile : noop}
+            inventory={state.inventories[topPlayer]}
+            active={trayActiveFor(topPlayer)}
+            selected={trayActiveFor(topPlayer) ? tile : null}
+            onSelect={trayActiveFor(topPlayer) ? setTile : noop}
           />
         </div>
 
@@ -136,15 +138,15 @@ export function Board({
         )}
         </div>
 
-        {/* P1 tray pinned to the bottom of the row — sits next to P1's pieces */}
+        {/* Viewer's own tray — bottom-right of the row */}
         <div className="self-end">
           <TileTray
-            player={1}
+            player={bottomPlayer}
             orientation="vertical"
-            inventory={state.inventories[1]}
-            active={trayActiveFor(1)}
-            selected={trayActiveFor(1) ? tile : null}
-            onSelect={trayActiveFor(1) ? setTile : noop}
+            inventory={state.inventories[bottomPlayer]}
+            active={trayActiveFor(bottomPlayer)}
+            selected={trayActiveFor(bottomPlayer) ? tile : null}
+            onSelect={trayActiveFor(bottomPlayer) ? setTile : noop}
           />
         </div>
       </div>
