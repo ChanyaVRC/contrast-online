@@ -158,3 +158,47 @@ export function compactMoveToAction(
     tilePlace: compact.tilePlace ?? null,
   };
 }
+
+// ---- On-disk packed encoding for the opening book ----
+//
+// Each coord packs into a single int (r * 5 + c, 0–24). A move is then
+// either a 1-element array [fromTo] when no tile is placed, or a 3-element
+// array [fromTo, color, tileAt] where color is 1 (black) or 2 (gray).
+// fromTo = from*25 + to (0–624). This cuts the JSON value down from
+// ~40 chars to 4–10.
+
+export type PackedMove = readonly [number] | readonly [number, 1 | 2, number];
+
+const N = BOARD_SIZE;
+
+function packCoord(c: Coord): number {
+  return c[0] * N + c[1];
+}
+function unpackCoord(n: number): Coord {
+  return [Math.floor(n / N), n % N];
+}
+
+export function packCompactMove(move: CompactMove): PackedMove {
+  const fromTo = packCoord(move.from) * (N * N) + packCoord(move.to);
+  if (!move.tilePlace) return [fromTo];
+  return [
+    fromTo,
+    move.tilePlace.color === "black" ? 1 : 2,
+    packCoord(move.tilePlace.at),
+  ];
+}
+
+export function unpackCompactMove(packed: PackedMove): CompactMove {
+  const fromTo = packed[0];
+  const from = unpackCoord(Math.floor(fromTo / (N * N)));
+  const to = unpackCoord(fromTo % (N * N));
+  if (packed.length === 1) return { from, to, tilePlace: null };
+  return {
+    from,
+    to,
+    tilePlace: {
+      color: packed[1] === 1 ? "black" : "gray",
+      at: unpackCoord(packed[2]),
+    },
+  };
+}

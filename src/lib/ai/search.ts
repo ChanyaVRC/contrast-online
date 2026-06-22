@@ -372,19 +372,41 @@ function actionKey(a: MoveAction): string {
 
 // ---- State hashing for TT ----
 
+// Combine tile state and piece ownership into a single base-9 digit per
+// cell, so a full board fits in 25 chars instead of 50. Layout per cell:
+//   0 empty       1 black tile     2 gray tile
+//   3 empty + P1  4 empty + P2
+//   5 black + P1  6 black + P2
+//   7 gray  + P1  8 gray  + P2
+//
+// Total key length: 1 (turn) + 25 (cells) + 4 (inventories) = 30 chars.
+// Halves both the in-memory TT key cost and the on-disk opening-book
+// canonical-key cost.
+const CELL_CODE: readonly (readonly number[])[] = [
+  [0, 3, 4], // empty
+  [1, 5, 6], // black tile
+  [2, 7, 8], // gray tile
+];
+
 export function stateKey(state: GameState): string {
-  let board = "";
-  for (const row of state.board) {
-    for (const cell of row) {
-      board += cell === null ? "." : cell === "black" ? "B" : "G";
+  const N = BOARD_SIZE;
+  const tiles = new Uint8Array(N * N);
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const t = state.board[r][c];
+      tiles[r * N + c] = t === null ? 0 : t === "black" ? 1 : 2;
     }
   }
-  const grid = new Array(BOARD_SIZE * BOARD_SIZE).fill(".");
+  const owners = new Uint8Array(N * N);
   for (const p of state.pieces) {
-    grid[p.at[0] * BOARD_SIZE + p.at[1]] = p.owner === 1 ? "1" : "2";
+    owners[p.at[0] * N + p.at[1]] = p.owner;
+  }
+  let board = "";
+  for (let i = 0; i < N * N; i++) {
+    board += CELL_CODE[tiles[i]][owners[i]];
   }
   const inv = state.inventories;
-  return `${state.turn}|${board}|${grid.join("")}|${inv[1].black}${inv[1].gray}${inv[2].black}${inv[2].gray}`;
+  return `${state.turn}${board}${inv[1].black}${inv[1].gray}${inv[2].black}${inv[2].gray}`;
 }
 
 export const _internals = { generateActions, orderActions, stateKey, opponentOf, inBounds };

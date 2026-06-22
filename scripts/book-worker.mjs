@@ -7,6 +7,7 @@ import { chooseMove, createTT } from "../src/lib/ai/search.ts";
 import {
   canonicalize,
   moveToCompact,
+  packCompactMove,
   transformCompactMove,
 } from "../src/lib/ai/symmetry.ts";
 import {
@@ -75,13 +76,14 @@ parentPort.on("message", (job) => {
   const { key, transform } = canonicalize(state);
   const compact = moveToCompact(state, res.action);
   const canonicalMove = transformCompactMove(compact, transform);
+  const packedMove = packCompactMove(canonicalMove);
 
   const replies = rankTopMoves(state, branch, rankTimeMs);
   const children = replies.map((r) => applyAction(state, r));
 
   parentPort.postMessage({
     canonicalKey: key,
-    canonicalMove,
+    packedMove,
     children,
     info: { depth: res.depth, nodes: res.nodes, time: dt },
   });

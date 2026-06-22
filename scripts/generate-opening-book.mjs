@@ -80,7 +80,7 @@ await new Promise((resolve) => {
         completed++;
 
         if (result.canonicalKey) {
-          book[result.canonicalKey] = result.canonicalMove;
+          book[result.canonicalKey] = result.packedMove;
           for (const child of result.children) {
             tryEnqueue(child, job.plies - 1);
           }

@@ -3,9 +3,11 @@ import {
   canonicalize,
   compactMoveToAction,
   moveToCompact,
+  packCompactMove,
   transformCompactMove,
   transformCoord,
   transformState,
+  unpackCompactMove,
   type Transform,
 } from "@/lib/ai/symmetry";
 import { stateKey } from "@/lib/ai/search";
@@ -68,6 +70,26 @@ describe("symmetry transforms", () => {
     const back = compactMoveToAction(s, compact);
     expect(back?.pieceId).toBe(action.pieceId);
     expect(back?.to).toEqual(action.to);
+  });
+
+  it("packCompactMove round-trips losslessly for both shapes", () => {
+    const noTile = {
+      from: [0, 2] as [number, number],
+      to: [1, 2] as [number, number],
+      tilePlace: null,
+    };
+    const withTile = {
+      from: [3, 1] as [number, number],
+      to: [4, 1] as [number, number],
+      tilePlace: { color: "gray" as const, at: [2, 2] as [number, number] },
+    };
+    for (const move of [noTile, withTile]) {
+      const packed = packCompactMove(move);
+      const back = unpackCompactMove(packed);
+      expect(back.from).toEqual(move.from);
+      expect(back.to).toEqual(move.to);
+      expect(back.tilePlace).toEqual(move.tilePlace);
+    }
   });
 
   it("transformCompactMove round-trips through a non-identity transform", () => {

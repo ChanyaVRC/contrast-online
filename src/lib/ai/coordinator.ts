@@ -5,7 +5,8 @@ import {
   canonicalize,
   compactMoveToAction,
   transformCompactMove,
-  type CompactMove,
+  unpackCompactMove,
+  type PackedMove,
 } from "./symmetry";
 import type { GameState, MoveAction, Player } from "@game/types";
 import type { AiRequest, AiResponse } from "./worker";
@@ -25,7 +26,7 @@ export interface CoordinatorSearchResult {
   fromBook: boolean;
 }
 
-type OpeningBook = Record<string, CompactMove>;
+type OpeningBook = Record<string, PackedMove>;
 
 interface Pending {
   resolve: (response: AiResponse) => void;
@@ -122,9 +123,10 @@ export class AiCoordinator {
   private lookupBook(state: GameState): MoveAction | null {
     if (!this.bookReady) return null;
     const { key, transform } = canonicalize(state);
-    const entry = this.book[key];
-    if (!entry) return null;
-    const inOurs = transformCompactMove(entry, transform);
+    const packed = this.book[key];
+    if (!packed) return null;
+    const canonical = unpackCompactMove(packed);
+    const inOurs = transformCompactMove(canonical, transform);
     return compactMoveToAction(state, inOurs);
   }
 
