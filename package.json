@@ -18,9 +18,9 @@
     "preview": "npm run cf:build && opennextjs-cloudflare preview",
     "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "cf:types": "wrangler types",
-    "ai:book": "tsx scripts/generate-opening-book.mjs",
-    "ai:book:append": "cross-env APPEND=1 tsx scripts/generate-opening-book.mjs",
-    "book:minify": "node scripts/minify-book.mjs"
+    "ai:book": "bun scripts/generate-opening-book.mjs",
+    "ai:book:append": "cross-env APPEND=1 bun scripts/generate-opening-book.mjs",
+    "book:minify": "bun scripts/minify-book.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

@@ -59,9 +59,11 @@ console.log(
     `MODE=${APPEND ? `append (${existingKeys.size} existing entries)` : "overwrite"}`,
 );
 
+// Bun handles `.ts` imports natively, so no loader flag is needed in
+// child worker isolates.
 const workers = Array.from(
   { length: NUM_WORKERS },
-  () => new Worker(workerPath, { execArgv: ["--import", "tsx"] }),
+  () => new Worker(workerPath),
 );
 
 const idleWorkers = [...workers];
