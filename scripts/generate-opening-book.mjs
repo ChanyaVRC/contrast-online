@@ -30,13 +30,33 @@ const BRANCH = envInt("BRANCH", 3);
 const SEARCH_TIME_MS = envInt("SEARCH_TIME", 6000);
 const SEARCH_DEPTH = envInt("SEARCH_DEPTH", 12);
 const RANK_TIME_MS = envInt("RANK_TIME", 400);
+const APPEND = process.env.APPEND === "1" || process.env.APPEND === "true";
+
+const SOURCE_PATH = path.join("data", "opening-book.json");
+
+/** Pre-existing entries loaded when APPEND=1. Positions whose canonical
+ *  key is already in here are skipped at the deep-search step — their
+ *  stored move stands — but their children are still expanded so the
+ *  BFS can reach previously-untouched positions. */
+const existingBook = (() => {
+  if (!APPEND) return {};
+  if (!fs.existsSync(SOURCE_PATH)) {
+    console.warn(
+      `APPEND=1 but ${SOURCE_PATH} doesn't exist yet — starting fresh.`,
+    );
+    return {};
+  }
+  return JSON.parse(fs.readFileSync(SOURCE_PATH, "utf-8"));
+})();
+const existingKeys = new Set(Object.keys(existingBook));
 
 const workerPath = new URL("./book-worker.mjs", import.meta.url);
 
 console.log(
   `Generator: PLIES=${PLIES} BRANCH=${BRANCH} ` +
     `SEARCH=${SEARCH_TIME_MS}ms/depth${SEARCH_DEPTH} RANK=${RANK_TIME_MS}ms ` +
-    `WORKERS=${NUM_WORKERS}`,
+    `WORKERS=${NUM_WORKERS} ` +
+    `MODE=${APPEND ? `append (${existingKeys.size} existing entries)` : "overwrite"}`,
 );
 
 const workers = Array.from(
@@ -45,12 +65,14 @@ const workers = Array.from(
 );
 
 const idleWorkers = [...workers];
-const book = {};
+const book = { ...existingBook };
 const visited = new Set();
 const queue = [];
 let inFlight = 0;
 let completed = 0;
 let collisions = 0;
+let newlyAdded = 0;
+let reusedFromBook = 0;
 
 function tryEnqueue(state, plies) {
   if (plies <= 0 || state.winner !== null) return;
@@ -60,7 +82,8 @@ function tryEnqueue(state, plies) {
     return;
   }
   visited.add(key);
-  queue.push({ state, plies });
+  const skipDeepSearch = existingKeys.has(key);
+  queue.push({ state, plies, skipDeepSearch });
 }
 
 tryEnqueue(initialState(), PLIES);
@@ -82,14 +105,18 @@ await new Promise((resolve) => {
 
         if (result.canonicalKey) {
           book[result.canonicalKey] = result.packedMove;
-          for (const child of result.children) {
-            tryEnqueue(child, job.plies - 1);
-          }
+          newlyAdded++;
+        }
+        if (result.reused) reusedFromBook++;
+        for (const child of result.children ?? []) {
+          tryEnqueue(child, job.plies - 1);
         }
 
+        const tag = result.reused ? "reused" : "new   ";
         process.stdout.write(
           `[${completed.toString().padStart(4)}] ` +
             `plies=${(PLIES - job.plies).toString().padStart(2)} ` +
+            `${tag} ` +
             `depth=${result.info.depth.toString().padStart(2)} ` +
             `nodes=${result.info.nodes.toLocaleString().padStart(10)} ` +
             `${result.info.time.toFixed(0).padStart(5)}ms ` +
@@ -107,6 +134,7 @@ await new Promise((resolve) => {
         searchTimeMs: SEARCH_TIME_MS,
         searchDepth: SEARCH_DEPTH,
         rankTimeMs: RANK_TIME_MS,
+        skipDeepSearch: job.skipDeepSearch,
       });
     }
   }
@@ -129,8 +157,12 @@ const sizeKB = fs.statSync(outPath).size / 1024;
 
 console.log(
   `\nWrote ${Object.keys(book).length} positions ` +
-    `(${sizeKB.toFixed(1)} KB, pretty + sorted) to ${outPath} in ${dt.toFixed(0)}s ` +
-    `(${completed} searches, ${collisions} symmetry collisions, ${NUM_WORKERS} workers)`,
+    `(${sizeKB.toFixed(1)} KB, pretty + sorted) to ${outPath} in ${dt.toFixed(0)}s`,
+);
+console.log(
+  `  + ${newlyAdded} new entries from this run` +
+    (APPEND ? `, ${reusedFromBook} positions reused from existing book` : "") +
+    `, ${collisions} symmetry collisions, ${NUM_WORKERS} workers`,
 );
 console.log(
   "Run `npm run book:minify` to refresh public/opening-book.json for distribution.",

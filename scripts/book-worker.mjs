@@ -54,8 +54,24 @@ function rankTopMoves(state, k, rankTimeMs) {
 }
 
 parentPort.on("message", (job) => {
-  const { state, branch, searchTimeMs, searchDepth, rankTimeMs } = job;
+  const { state, branch, searchTimeMs, searchDepth, rankTimeMs, skipDeepSearch } = job;
   const t0 = performance.now();
+
+  // Position already present in the book — just walk its children so
+  // BFS can keep going deeper, but don't redo the (expensive) deep
+  // alpha-beta search. The existing entry stands.
+  if (skipDeepSearch) {
+    const replies = rankTopMoves(state, branch, rankTimeMs);
+    const children = replies.map((r) => applyAction(state, r));
+    const dt = performance.now() - t0;
+    parentPort.postMessage({
+      canonicalKey: null,
+      reused: true,
+      children,
+      info: { depth: 0, nodes: 0, time: dt },
+    });
+    return;
+  }
 
   const tt = createTT();
   const res = chooseMove(state, state.turn, {
@@ -68,6 +84,7 @@ parentPort.on("message", (job) => {
   if (!res.action) {
     parentPort.postMessage({
       canonicalKey: null,
+      reused: false,
       info: { depth: 0, nodes: 0, time: dt },
     });
     return;
@@ -84,6 +101,7 @@ parentPort.on("message", (job) => {
   parentPort.postMessage({
     canonicalKey: key,
     packedMove,
+    reused: false,
     children,
     info: { depth: res.depth, nodes: res.nodes, time: dt },
   });

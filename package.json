@@ -19,6 +19,7 @@
     "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "cf:types": "wrangler types",
     "ai:book": "tsx scripts/generate-opening-book.mjs",
+    "ai:book:append": "cross-env APPEND=1 tsx scripts/generate-opening-book.mjs",
     "book:minify": "node scripts/minify-book.mjs"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.2",
+    "cross-env": "^10.1.0",
     "esbuild": "^0.28.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
