@@ -15,6 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { canonicalize } from "../src/lib/ai/symmetry.ts";
 import { initialState } from "../src/lib/game/initial.ts";
+import { stringifyPretty } from "./book-format.mjs";
 
 const envInt = (name, fallback) => {
   const v = process.env[name];
@@ -117,14 +118,20 @@ await Promise.all(workers.map((w) => w.terminate()));
 
 const dt = (Date.now() - t0) / 1000;
 
-const outDir = path.join("public");
+// Generator writes the source-of-truth pretty file under `data/`. The
+// minified `public/opening-book.json` is produced from it by the
+// `book:minify` script (run automatically by predev / prebuild hooks).
+const outDir = path.join("data");
 fs.mkdirSync(outDir, { recursive: true });
 const outPath = path.join(outDir, "opening-book.json");
-fs.writeFileSync(outPath, JSON.stringify(book));
+fs.writeFileSync(outPath, stringifyPretty(book));
 const sizeKB = fs.statSync(outPath).size / 1024;
 
 console.log(
   `\nWrote ${Object.keys(book).length} positions ` +
-    `(${sizeKB.toFixed(1)} KB) to ${outPath} in ${dt.toFixed(0)}s ` +
+    `(${sizeKB.toFixed(1)} KB, pretty + sorted) to ${outPath} in ${dt.toFixed(0)}s ` +
     `(${completed} searches, ${collisions} symmetry collisions, ${NUM_WORKERS} workers)`,
+);
+console.log(
+  "Run `npm run book:minify` to refresh public/opening-book.json for distribution.",
 );

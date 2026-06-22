@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run book:minify",
     "dev": "next dev",
+    "prebuild": "npm run book:minify",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
@@ -12,11 +14,12 @@
     "test:watch": "vitest",
     "cf:clean": "node scripts/clean-build.mjs",
     "cf:build:next": "next build --webpack",
-    "cf:build": "npm run cf:clean && npm run cf:build:next && opennextjs-cloudflare build --skipNextBuild && node scripts/inject-do.mjs",
+    "cf:build": "npm run cf:clean && npm run book:minify && npm run cf:build:next && opennextjs-cloudflare build --skipNextBuild && node scripts/inject-do.mjs",
     "preview": "npm run cf:build && opennextjs-cloudflare preview",
     "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "cf:types": "wrangler types",
-    "ai:book": "tsx scripts/generate-opening-book.mjs"
+    "ai:book": "tsx scripts/generate-opening-book.mjs",
+    "book:minify": "node scripts/minify-book.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

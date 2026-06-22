@@ -47,3 +47,6 @@ next-env.d.ts
 
 # claude code internals
 /.claude/
+
+# generated / distributed forms — source lives in data/
+/public/opening-book.json
