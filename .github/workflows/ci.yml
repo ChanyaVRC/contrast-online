@@ -14,6 +14,11 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+      # The book pipeline (book:minify, ai:book) shells out to `bun`, so
+      # the predev / prebuild hooks need it available on PATH.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test
